@@ -19,6 +19,16 @@ class MailMergeApp {
   private fields: Field[] = [];
   private canvas: HTMLCanvasElement | null = null;
   private ctx: CanvasRenderingContext2D | null = null;
+  
+  // Mouse interaction state
+  private isDragging = false;
+  private isResizing = false;
+  private selectedFieldIndex = -1;
+  private dragStartX = 0;
+  private dragStartY = 0;
+  private dragStartFieldX = 0;
+  private dragStartFieldY = 0;
+  private dragStartFontSize = 0;
 
   constructor() {
     this.init();
@@ -90,7 +100,7 @@ class MailMergeApp {
           Template Preview
         </h3>
         <div class="bg-white rounded-xl p-4 shadow-lg">
-          <canvas id="imageCanvas" class="cursor-crosshair max-w-full h-auto rounded-lg shadow-md"></canvas>
+          <canvas id="imageCanvas" class="cursor-default max-w-full h-auto rounded-lg shadow-md"></canvas>
         </div>
       </div>
     `;
@@ -109,22 +119,14 @@ class MailMergeApp {
         const fieldDefinition = document.getElementById('fieldDefinition') as HTMLElement;
         fieldDefinition.classList.remove('hidden');
 
-        // Add click event for field placement
-        this.canvas.addEventListener('click', (e) => this.addField(e));
+        // Add mouse event handlers for field interaction
+        this.bindCanvasEvents();
       }
     };
     img.src = imageUrl;
   }
 
-  private addField(e: MouseEvent) {
-    if (!this.canvas) return;
-
-    const rect = this.canvas.getBoundingClientRect();
-    const scaleX = this.canvas.width / rect.width;
-    const scaleY = this.canvas.height / rect.height;
-    const x = (e.clientX - rect.left) * scaleX;
-    const y = (e.clientY - rect.top) * scaleY;
-
+  private addFieldAtPosition(x: number, y: number) {
     const fieldName = prompt('Enter field name (must match CSV column):');
     if (!fieldName) return;
 
@@ -454,6 +456,141 @@ class MailMergeApp {
         `;
       }
     });
+  }
+
+  // Mouse interaction methods
+  private getCanvasCoordinates(e: MouseEvent): { x: number, y: number } {
+    if (!this.canvas) return { x: 0, y: 0 };
+    const rect = this.canvas.getBoundingClientRect();
+    const scaleX = this.canvas.width / rect.width;
+    const scaleY = this.canvas.height / rect.height;
+    return {
+      x: (e.clientX - rect.left) * scaleX,
+      y: (e.clientY - rect.top) * scaleY
+    };
+  }
+
+  private getFieldAtPosition(x: number, y: number): { index: number, isResizeHandle: boolean } {
+    for (let i = this.fields.length - 1; i >= 0; i--) {
+      const field = this.fields[i];
+      
+      // Check resize handle (small square at bottom-right)
+      const handleSize = 10;
+      const handleX = field.x + 100; // Approximate text width
+      const handleY = field.y + field.fontSize;
+      
+      if (x >= handleX - handleSize && x <= handleX + handleSize &&
+          y >= handleY - handleSize && y <= handleY + handleSize) {
+        return { index: i, isResizeHandle: true };
+      }
+      
+      // Check field area
+      if (x >= field.x && x <= field.x + 100 && // Approximate field width
+          y >= field.y - field.fontSize && y <= field.y + 5) {
+        return { index: i, isResizeHandle: false };
+      }
+    }
+    return { index: -1, isResizeHandle: false };
+  }
+
+  private handleMouseDown(e: MouseEvent) {
+    if (!this.canvas) return;
+    
+    const coords = this.getCanvasCoordinates(e);
+    const hit = this.getFieldAtPosition(coords.x, coords.y);
+    
+    if (hit.index >= 0) {
+      // Clicking on an existing field
+      this.selectedFieldIndex = hit.index;
+      const field = this.fields[hit.index];
+      
+      if (hit.isResizeHandle) {
+        this.isResizing = true;
+        this.dragStartFontSize = field.fontSize;
+      } else {
+        this.isDragging = true;
+        this.dragStartFieldX = field.x;
+        this.dragStartFieldY = field.y;
+      }
+      
+      this.dragStartX = coords.x;
+      this.dragStartY = coords.y;
+      
+      this.canvas.style.cursor = hit.isResizeHandle ? 'nw-resize' : 'move';
+    } else {
+      // Clicking on empty area - add new field
+      this.addFieldAtPosition(coords.x, coords.y);
+    }
+  }
+
+  private handleMouseMove(e: MouseEvent) {
+    if (!this.canvas) return;
+    
+    const coords = this.getCanvasCoordinates(e);
+    
+    if (this.isDragging && this.selectedFieldIndex >= 0) {
+      const field = this.fields[this.selectedFieldIndex];
+      field.x = this.dragStartFieldX + (coords.x - this.dragStartX);
+      field.y = this.dragStartFieldY + (coords.y - this.dragStartY);
+      this.drawFields();
+    } else if (this.isResizing && this.selectedFieldIndex >= 0) {
+      const field = this.fields[this.selectedFieldIndex];
+      const deltaY = coords.y - this.dragStartY;
+      field.fontSize = Math.max(8, Math.min(72, this.dragStartFontSize + deltaY * 0.5));
+      this.drawFields();
+      this.updateFieldList();
+    } else {
+      // Update cursor based on hover
+      const hit = this.getFieldAtPosition(coords.x, coords.y);
+      if (hit.index >= 0) {
+        this.canvas.style.cursor = hit.isResizeHandle ? 'nw-resize' : 'move';
+      } else {
+        this.canvas.style.cursor = 'crosshair';
+      }
+    }
+  }
+
+  private handleMouseUp(e: MouseEvent) {
+    this.isDragging = false;
+    this.isResizing = false;
+    this.selectedFieldIndex = -1;
+    if (this.canvas) {
+      this.canvas.style.cursor = 'crosshair';
+    }
+  }
+
+  private handleWheel(e: WheelEvent) {
+    e.preventDefault();
+    if (!this.canvas) return;
+    
+    const coords = this.getCanvasCoordinates(e);
+    const hit = this.getFieldAtPosition(coords.x, coords.y);
+    
+    if (hit.index >= 0) {
+      const field = this.fields[hit.index];
+      const delta = e.deltaY > 0 ? -2 : 2;
+      field.fontSize = Math.max(8, Math.min(72, field.fontSize + delta));
+      this.drawFields();
+      this.updateFieldList();
+    }
+  }
+
+  private bindCanvasEvents() {
+    if (!this.canvas) return;
+    
+    // Remove existing event listeners to avoid duplicates
+    this.canvas.removeEventListener('mousedown', this.handleMouseDown);
+    this.canvas.removeEventListener('mousemove', this.handleMouseMove);
+    this.canvas.removeEventListener('mouseup', this.handleMouseUp);
+    this.canvas.removeEventListener('wheel', this.handleWheel);
+    this.canvas.removeEventListener('mouseleave', this.handleMouseUp);
+    
+    // Add event listeners
+    this.canvas.addEventListener('mousedown', (e) => this.handleMouseDown(e));
+    this.canvas.addEventListener('mousemove', (e) => this.handleMouseMove(e));
+    this.canvas.addEventListener('mouseup', (e) => this.handleMouseUp(e));
+    this.canvas.addEventListener('wheel', (e) => this.handleWheel(e));
+    this.canvas.addEventListener('mouseleave', (e) => this.handleMouseUp(e));
   }
 }
 
