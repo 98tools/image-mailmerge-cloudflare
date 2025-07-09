@@ -71,7 +71,10 @@ app.get('/', (c) => {
                 <svg class="w-6 h-6 text-emerald-300 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
-                <p class="text-emerald-200 font-medium">Click anywhere on your image to add text fields. Each field will correspond to a column in your CSV.</p>
+                <div>
+                  <p class="text-emerald-200 font-medium">Click anywhere on your image to add text fields. Each field will correspond to a column in your CSV.</p>
+                  <p class="text-emerald-300 text-sm mt-1">💡 Tip: Use the "Demo Text" input to preview how your text will look on the image!</p>
+                </div>
               </div>
             </div>
             <div id="fieldList" class="mb-6"></div>
@@ -243,7 +246,8 @@ app.get('/', (c) => {
               x: x,
               y: y,
               fontSize: 24,
-              color: '#000000'
+              color: '#000000',
+              demoText: ''
             };
 
             fields.push(field);
@@ -252,13 +256,17 @@ app.get('/', (c) => {
           }
 
           function drawFields() {
-            // Redraw image
+            if (!templateImage) return;
+            
+            // Create a new image from the original template
             const img = new Image();
             img.onload = function() {
+              // Clear the entire canvas first
               ctx.clearRect(0, 0, canvas.width, canvas.height);
+              // Draw the fresh original image
               ctx.drawImage(img, 0, 0);
               
-              // Draw field markers
+              // Draw field markers and demo text
               fields.forEach((field, index) => {
                 // Draw marker circle
                 ctx.fillStyle = '#ef4444';
@@ -272,15 +280,26 @@ app.get('/', (c) => {
                 ctx.arc(field.x, field.y, 4, 0, 2 * Math.PI);
                 ctx.fill();
                 
-                // Draw label
+                // Draw field number
                 ctx.fillStyle = '#1f2937';
-                ctx.font = 'bold 14px Arial';
+                ctx.font = 'bold 12px Arial';
                 ctx.fillText(\`\${index + 1}\`, field.x + 12, field.y - 8);
-                ctx.font = '12px Arial';
-                ctx.fillText(field.name, field.x + 12, field.y + 6);
+                
+                // Draw demo text if available
+                if (field.demoText && field.demoText.trim()) {
+                  ctx.font = \`\${field.fontSize}px Arial\`;
+                  ctx.fillStyle = field.color;
+                  ctx.fillText(field.demoText, field.x, field.y);
+                } else {
+                  // Draw field name if no demo text
+                  ctx.fillStyle = '#1f2937';
+                  ctx.font = '12px Arial';
+                  ctx.fillText(field.name, field.x + 12, field.y + 6);
+                }
               });
             };
-            img.src = canvas.toDataURL();
+            // Use the original template image URL instead of canvas.toDataURL()
+            img.src = URL.createObjectURL(templateImage);
           }
 
           function updateFieldList() {
@@ -306,7 +325,15 @@ app.get('/', (c) => {
                         </svg>
                       </button>
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label class="block text-emerald-200 text-sm font-medium mb-2">Demo Text</label>
+                        <input type="text" value="\${field.demoText || ''}" 
+                               placeholder="Add demo text here..."
+                               onchange="updateField(\${index}, 'demoText', this.value)"
+                               oninput="updateField(\${index}, 'demoText', this.value)"
+                               class="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                      </div>
                       <div>
                         <label class="block text-emerald-200 text-sm font-medium mb-2">Font Size</label>
                         <input type="number" value="\${field.fontSize}" onchange="updateField(\${index}, 'fontSize', this.value)" 
@@ -327,6 +354,9 @@ app.get('/', (c) => {
           function updateField(index, property, value) {
             fields[index][property] = property === 'fontSize' ? parseInt(value) : value;
             drawFields();
+            
+            // Don't regenerate the field list for demo text changes to avoid losing focus
+            // The field list only needs to update when fields are added/removed
           }
 
           function removeField(index) {
