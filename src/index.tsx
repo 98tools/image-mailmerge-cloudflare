@@ -73,7 +73,8 @@ app.get('/', (c) => {
                 </svg>
                 <div>
                   <p class="text-emerald-200 font-medium">Click anywhere on your image to add text fields. Each field will correspond to a column in your CSV.</p>
-                  <p class="text-emerald-300 text-sm mt-1">💡 Tip: Use the "Demo Text" input to preview how your text will look on the image!</p>
+                  <p class="text-emerald-300 text-sm mt-1">💡 Tip 1: Use the "Demo Text" input to preview how your text will look on the image!</p>
+                  <p class="text-emerald-300 text-sm mt-1">💡 Tip 2: Hover over a field in the preview and scroll with your mouse wheel to adjust its size, or hold click and move to change its position.</p>
                 </div>
               </div>
             </div>
