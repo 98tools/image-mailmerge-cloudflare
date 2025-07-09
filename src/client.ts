@@ -160,30 +160,32 @@ class MailMergeApp {
       this.fields.forEach((field, index) => {
         if (!this.ctx) return;
         
-        // Draw marker circle
-        this.ctx.fillStyle = '#ef4444';
-        this.ctx.beginPath();
-        this.ctx.arc(field.x, field.y, 8, 0, 2 * Math.PI);
-        this.ctx.fill();
-
-        // Draw white center
-        this.ctx.fillStyle = '#ffffff';
-        this.ctx.beginPath();
-        this.ctx.arc(field.x, field.y, 4, 0, 2 * Math.PI);
-        this.ctx.fill();
-
-        // Draw field number
-        this.ctx.fillStyle = '#1f2937';
-        this.ctx.font = 'bold 12px Arial';
-        this.ctx.fillText(`${index + 1}`, field.x + 12, field.y - 8);
-
         // Draw demo text if available
         if (field.demoText && field.demoText.trim()) {
+          // When demo text is present, only show the demo text, no pointer
           this.ctx.font = `${field.fontSize}px Arial`;
           this.ctx.fillStyle = field.color;
           this.ctx.fillText(field.demoText, field.x, field.y);
         } else {
-          // Draw field name if no demo text
+          // When no demo text, show the field pointer and name
+          // Draw marker circle
+          this.ctx.fillStyle = '#ef4444';
+          this.ctx.beginPath();
+          this.ctx.arc(field.x, field.y, 8, 0, 2 * Math.PI);
+          this.ctx.fill();
+
+          // Draw white center
+          this.ctx.fillStyle = '#ffffff';
+          this.ctx.beginPath();
+          this.ctx.arc(field.x, field.y, 4, 0, 2 * Math.PI);
+          this.ctx.fill();
+
+          // Draw field number
+          this.ctx.fillStyle = '#1f2937';
+          this.ctx.font = 'bold 12px Arial';
+          this.ctx.fillText(`${index + 1}`, field.x + 12, field.y - 8);
+          
+          // Draw field name
           this.ctx.fillStyle = '#1f2937';
           this.ctx.font = '12px Arial';
           this.ctx.fillText(field.name, field.x + 12, field.y + 6);
