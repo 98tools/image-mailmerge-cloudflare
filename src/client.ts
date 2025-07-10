@@ -460,6 +460,11 @@ class MailMergeApp {
       return;
     }
 
+    // Disable the generate button during processing
+    const generateBtn = document.getElementById('generateImages') as HTMLButtonElement;
+    generateBtn.disabled = true;
+    generateBtn.classList.add('opacity-50', 'cursor-not-allowed');
+    
     const progress = document.getElementById('progress') as HTMLElement;
     const progressBar = document.getElementById('progressBar') as HTMLElement;
     const progressText = document.getElementById('progressText') as HTMLElement;
@@ -470,79 +475,106 @@ class MailMergeApp {
     const img = new Image();
 
     img.onload = async () => {
-      const tempCanvas = document.createElement('canvas');
-      const tempCtx = tempCanvas.getContext('2d');
-      if (!tempCtx || !this.csvData) return;
+      try {
+        const tempCanvas = document.createElement('canvas');
+        const tempCtx = tempCanvas.getContext('2d');
+        if (!tempCtx || !this.csvData) return;
 
-      tempCanvas.width = img.width;
-      tempCanvas.height = img.height;
+        tempCanvas.width = img.width;
+        tempCanvas.height = img.height;
 
-      for (let i = 0; i < this.csvData.length; i++) {
-        const row = this.csvData[i];
+        for (let i = 0; i < this.csvData.length; i++) {
+          const row = this.csvData[i];
 
-        // Clear and draw base image
-        tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
-        tempCtx.drawImage(img, 0, 0);
+          // Clear and draw base image
+          tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
+          tempCtx.drawImage(img, 0, 0);
 
-        // Draw text fields using field mappings
-        this.fields.forEach(field => {
-          // Find the mapping for this field
-          const mapping = this.fieldMappings.find(m => m.fieldName === field.name);
-          const csvColumn = mapping?.csvColumn;
-          
-          // Get text from mapped CSV column or leave empty if unmapped
-          const text = (csvColumn && row[csvColumn]) ? row[csvColumn] : '';
-          
-          if (text) { // Only draw if there's text to display
-            tempCtx.font = `${field.fontSize}px Arial`;
-            tempCtx.fillStyle = field.color;
-            tempCtx.fillText(text, field.x, field.y);
-          }
-        });
+          // Draw text fields using field mappings
+          this.fields.forEach(field => {
+            // Find the mapping for this field
+            const mapping = this.fieldMappings.find(m => m.fieldName === field.name);
+            const csvColumn = mapping?.csvColumn;
+            
+            // Get text from mapped CSV column or leave empty if unmapped
+            const text = (csvColumn && row[csvColumn]) ? row[csvColumn] : '';
+            
+            if (text) { // Only draw if there's text to display
+              tempCtx.font = `${field.fontSize}px Arial`;
+              tempCtx.fillStyle = field.color;
+              tempCtx.fillText(text, field.x, field.y);
+            }
+          });
 
-        // Convert to blob and add to zip
-        const blob = await new Promise<Blob>((resolve) =>
-          tempCanvas.toBlob((blob) => resolve(blob!), 'image/png')
-        );
-        zip.file(`image_${String(i + 1).padStart(4, '0')}.png`, blob);
+          // Convert to blob and add to zip
+          const blob = await new Promise<Blob>((resolve) =>
+            tempCanvas.toBlob((blob) => resolve(blob!), 'image/png')
+          );
+          zip.file(`image_${String(i + 1).padStart(4, '0')}.png`, blob);
 
-        // Update progress
-        const percent = ((i + 1) / this.csvData.length) * 100;
-        progressBar.style.width = percent + '%';
-        progressText.textContent = `Processing image ${i + 1} of ${this.csvData.length} (${Math.round(percent)}%)`;
+          // Update progress
+          const percent = ((i + 1) / this.csvData.length) * 100;
+          progressBar.style.width = percent + '%';
+          progressText.textContent = `Processing image ${i + 1} of ${this.csvData.length} (${Math.round(percent)}%)`;
 
-        // Allow UI to update
-        await new Promise(resolve => setTimeout(resolve, 10));
+          // Allow UI to update
+          await new Promise(resolve => setTimeout(resolve, 10));
+        }
+
+        // Generate and download zip
+        progressText.textContent = 'Generating ZIP file...';
+        const zipBlob = await zip.generateAsync({ type: 'blob' });
+
+        const url = URL.createObjectURL(zipBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `mailmerge_images_${new Date().toISOString().slice(0,10)}.zip`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        progress.classList.add('hidden');
+
+        // Re-enable the generate button
+        generateBtn.disabled = false;
+        generateBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+
+        // Success notification
+        const successDiv = document.createElement('div');
+        successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-4 rounded-lg shadow-lg z-50';
+        successDiv.innerHTML = `
+          <div class="flex items-center">
+            <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+            Successfully generated ${this.csvData!.length} images!
+          </div>
+        `;
+        document.body.appendChild(successDiv);
+        setTimeout(() => successDiv.remove(), 5000);
+      } catch (error) {
+        // Hide progress and re-enable button on error
+        progress.classList.add('hidden');
+        generateBtn.disabled = false;
+        generateBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        
+        // Show error notification
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'fixed top-4 right-4 bg-red-500 text-white px-6 py-4 rounded-lg shadow-lg z-50';
+        errorDiv.innerHTML = `
+          <div class="flex items-center">
+            <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+            Error generating images: ${(error as Error).message}
+          </div>
+        `;
+        document.body.appendChild(errorDiv);
+        setTimeout(() => errorDiv.remove(), 5000);
+        
+        console.error('Error generating images:', error);
       }
-
-      // Generate and download zip
-      progressText.textContent = 'Generating ZIP file...';
-      const zipBlob = await zip.generateAsync({ type: 'blob' });
-
-      const url = URL.createObjectURL(zipBlob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `mailmerge_images_${new Date().toISOString().slice(0,10)}.zip`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
-      progress.classList.add('hidden');
-
-      // Success notification
-      const successDiv = document.createElement('div');
-      successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-4 rounded-lg shadow-lg z-50';
-      successDiv.innerHTML = `
-        <div class="flex items-center">
-          <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-          </svg>
-          Successfully generated ${this.csvData!.length} images!
-        </div>
-      `;
-      document.body.appendChild(successDiv);
-      setTimeout(() => successDiv.remove(), 5000);
     };
 
     img.src = URL.createObjectURL(this.templateImage);
