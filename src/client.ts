@@ -5,6 +5,7 @@ interface Field {
   x: number;
   y: number;
   fontSize: number;
+  fontFamily: string;
   color: string;
   demoText: string;
 }
@@ -36,6 +37,9 @@ class MailMergeApp {
   private dragStartFieldX = 0;
   private dragStartFieldY = 0;
   private dragStartFontSize = 0;
+
+  // UI update debouncing
+  private uiUpdateTimeout: number | null = null;
 
   // Sidebar resize state
   private isResizingSidebar = false;
@@ -225,6 +229,7 @@ class MailMergeApp {
       x: x,
       y: y,
       fontSize: 24,
+      fontFamily: 'Arial, sans-serif',
       color: '#000000',
       demoText: ''
     };
@@ -268,7 +273,7 @@ class MailMergeApp {
         // Draw demo text if available
         if (field.demoText && field.demoText.trim()) {
           // When demo text is present, only show the demo text, no pointer
-          this.ctx.font = `${field.fontSize}px Arial`;
+          this.ctx.font = `${field.fontSize}px ${field.fontFamily || 'Arial, sans-serif'}`;
           this.ctx.fillStyle = field.color;
           this.ctx.fillText(field.demoText, field.x, field.y);
         } else {
@@ -323,6 +328,22 @@ class MailMergeApp {
       { name: 'Pink', value: '#ec4899' }
     ];
 
+    // Font family options for text fields
+    const fontFamilyOptions = [
+      { name: 'Arial', value: 'Arial, sans-serif' },
+      { name: 'Helvetica', value: 'Helvetica, Arial, sans-serif' },
+      { name: 'Times New Roman', value: '"Times New Roman", Times, serif' },
+      { name: 'Georgia', value: 'Georgia, serif' },
+      { name: 'Courier New', value: '"Courier New", Courier, monospace' },
+      { name: 'Verdana', value: 'Verdana, sans-serif' },
+      { name: 'Trebuchet MS', value: '"Trebuchet MS", sans-serif' },
+      { name: 'Impact', value: 'Impact, Arial Black, sans-serif' },
+      { name: 'Comic Sans MS', value: '"Comic Sans MS", cursive' },
+      { name: 'Palatino', value: '"Palatino Linotype", Palatino, serif' },
+      { name: 'Tahoma', value: 'Tahoma, sans-serif' },
+      { name: 'Lucida Console', value: '"Lucida Console", monospace' }
+    ];
+
     fieldList.innerHTML = `
       <div class="space-y-3">
         <h4 class="text-sm font-semibold text-emerald-300">Fields (${this.fields.length})</h4>
@@ -363,6 +384,16 @@ class MailMergeApp {
                 </div>
               </div>
               <div>
+                <label class="block text-emerald-300 text-xs font-medium mb-1">Font Family</label>
+                <select onchange="window.mailMergeApp.updateField(${index}, 'fontFamily', this.value)" 
+                        class="w-full bg-gray-700/50 border border-gray-500 rounded px-2 py-1 text-white text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        style="font-family: ${field.fontFamily || 'Arial, sans-serif'}">
+                  ${fontFamilyOptions.map(font => `
+                    <option value="${font.value}" ${(field.fontFamily || 'Arial, sans-serif') === font.value ? 'selected' : ''} style="font-family: ${font.value}">${font.name}</option>
+                  `).join('')}
+                </select>
+              </div>
+              <div>
                 <label class="block text-emerald-300 text-xs font-medium mb-2">Text Color</label>
                 <div class="space-y-2">
                   <div class="flex flex-wrap gap-1">
@@ -395,22 +426,47 @@ class MailMergeApp {
       (this.fields[index] as any)[property] = value;
     }
     this.drawFields();
+    // Only update specific UI elements that need to reflect the change
+    if (property === 'fontFamily') {
+      // Update the select element's style to show the new font
+      const selectElement = document.querySelector(`select[onchange*="updateField(${index}, 'fontFamily',"]`) as HTMLSelectElement;
+      if (selectElement) {
+        selectElement.style.fontFamily = value as string;
+      }
+    }
   }
 
-  public removeField(index: number) {
-    const removedField = this.fields[index];
-    this.fields.splice(index, 1);
-    
-    // Remove corresponding mapping
-    const mappingIndex = this.fieldMappings.findIndex(m => m.fieldName === removedField.name);
-    if (mappingIndex >= 0) {
-      this.fieldMappings.splice(mappingIndex, 1);
+  private syncFieldToUI(index: number, property: keyof Field) {
+    // Update specific UI elements without re-rendering the entire field list
+    const field = this.fields[index];
+    if (!field) return;
+
+    if (property === 'fontSize') {
+      // Update font size number input - find the specific input for this field
+      const numberInput = document.querySelector(`input[type="number"][onchange*="updateField(${index}, 'fontSize',"]`) as HTMLInputElement;
+      if (numberInput && numberInput.value !== field.fontSize.toString()) {
+        numberInput.value = field.fontSize.toString();
+      }
+      
+      // Update font size range input - find the specific slider for this field  
+      const rangeInput = document.querySelector(`input[type="range"][onchange*="updateField(${index}, 'fontSize',"]`) as HTMLInputElement;
+      if (rangeInput && rangeInput.value !== field.fontSize.toString()) {
+        rangeInput.value = field.fontSize.toString();
+      }
+    }
+  }
+
+  private debouncedUpdateFieldList() {
+    // Clear existing timeout
+    if (this.uiUpdateTimeout) {
+      clearTimeout(this.uiUpdateTimeout);
     }
     
-    this.drawFields();
-    this.updateFieldList();
-    this.updateFieldMappingDisplay();
-    this.checkReadyToGenerate();
+    // Set new timeout to update field list after user stops interacting
+    this.uiUpdateTimeout = window.setTimeout(() => {
+      this.updateFieldList();
+      this.uiUpdateTimeout = null;
+    }, 150); // 150ms delay
   }
 
   private clearFields() {
@@ -536,7 +592,7 @@ class MailMergeApp {
             const text = (csvColumn && row[csvColumn]) ? row[csvColumn] : '';
             
             if (text) { // Only draw if there's text to display
-              tempCtx.font = `${field.fontSize}px Arial`;
+              tempCtx.font = `${field.fontSize}px ${field.fontFamily || 'Arial, sans-serif'}`;
               tempCtx.fillStyle = field.color;
               tempCtx.fillText(text, field.x, field.y);
             }
@@ -824,7 +880,8 @@ class MailMergeApp {
       const deltaY = coords.y - this.dragStartY;
       field.fontSize = Math.max(8, Math.min(72, this.dragStartFontSize + deltaY * 0.5));
       this.drawFields();
-      this.updateFieldList();
+      // Sync the change to UI elements during dragging
+      this.syncFieldToUI(this.selectedFieldIndex, 'fontSize');
     } else {
       // Update cursor based on hover
       const hit = this.getFieldAtPosition(coords.x, coords.y);
@@ -854,6 +911,9 @@ class MailMergeApp {
     if (this.canvas) {
       this.canvas.style.cursor = 'crosshair';
     }
+    
+    // Update field list after drag operations complete to sync any changes
+    this.updateFieldList();
   }
 
   private handleWheel(e: WheelEvent) {
@@ -869,7 +929,9 @@ class MailMergeApp {
       const delta = e.deltaY > 0 ? -2 : 2;
       field.fontSize = Math.max(8, Math.min(72, field.fontSize + delta));
       this.drawFields();
-      this.updateFieldList();
+      // Sync the change to UI elements and debounce full UI refresh
+      this.syncFieldToUI(hit.index, 'fontSize');
+      this.debouncedUpdateFieldList();
     }
     // If not hovering over a field, let the zoom functionality handle it
   }
