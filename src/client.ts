@@ -30,6 +30,23 @@ class MailMergeApp {
   private dragStartFieldY = 0;
   private dragStartFontSize = 0;
 
+  // Sidebar resize state
+  private isResizingSidebar = false;
+  private sidebarStartWidth = 0;
+  private resizeStartX = 0;
+
+  // Zoom state
+  private zoomLevel = 1;
+  private minZoom = 0.1;
+  private maxZoom = 5;
+  private originalImageWidth = 0;
+  private originalImageHeight = 0;
+  private isPanning = false;
+  private panStartX = 0;
+  private panStartY = 0;
+  private canvasOffsetX = 0;
+  private canvasOffsetY = 0;
+
   constructor() {
     this.init();
   }
@@ -62,6 +79,57 @@ class MailMergeApp {
 
     // Handle file input styling
     this.bindFileInputStyling();
+
+    // Handle sidebar resizing
+    this.bindSidebarResize();
+
+    // Handle zoom controls
+    this.bindZoomControls();
+
+    // Handle keyboard shortcuts
+    this.bindKeyboardShortcuts();
+
+    // Handle global mouse events for panning
+    this.bindGlobalMouseEvents();
+  }
+
+  private bindSidebarResize() {
+    const resizeHandle = document.getElementById('resizeHandle') as HTMLElement;
+    const sidebar = document.getElementById('sidebar') as HTMLElement;
+
+    if (!resizeHandle || !sidebar) return;
+
+    resizeHandle.addEventListener('mousedown', (e: MouseEvent) => {
+      e.preventDefault();
+      this.isResizingSidebar = true;
+      this.sidebarStartWidth = sidebar.offsetWidth;
+      this.resizeStartX = e.clientX;
+      
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+    });
+
+    document.addEventListener('mousemove', (e: MouseEvent) => {
+      if (!this.isResizingSidebar) return;
+      
+      const deltaX = e.clientX - this.resizeStartX;
+      const newWidth = this.sidebarStartWidth + deltaX;
+      
+      // Constrain the width
+      const minWidth = 300;
+      const maxWidth = Math.min(600, window.innerWidth * 0.5);
+      const constrainedWidth = Math.max(minWidth, Math.min(maxWidth, newWidth));
+      
+      sidebar.style.width = `${constrainedWidth}px`;
+    });
+
+    document.addEventListener('mouseup', () => {
+      if (this.isResizingSidebar) {
+        this.isResizingSidebar = false;
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      }
+    });
   }
 
   private async handleImageUpload(e: Event) {
@@ -92,15 +160,9 @@ class MailMergeApp {
   private displayImagePreview(imageUrl: string) {
     const preview = document.getElementById('imagePreview') as HTMLElement;
     preview.innerHTML = `
-      <div class="bg-white/10 border border-white/20 rounded-2xl p-6">
-        <h3 class="text-xl font-semibold text-white mb-4 flex items-center">
-          <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-          </svg>
-          Template Preview
-        </h3>
-        <div class="bg-white rounded-xl p-4 shadow-lg">
-          <canvas id="imageCanvas" class="cursor-default max-w-full h-auto rounded-lg shadow-md"></canvas>
+      <div class="h-full w-full overflow-auto bg-gray-800/50 rounded-lg" id="canvasContainer">
+        <div class="flex items-center justify-center min-h-full p-4" id="canvasWrapper">
+          <canvas id="imageCanvas" class="cursor-crosshair rounded-lg shadow-lg"></canvas>
         </div>
       </div>
     `;
@@ -111,16 +173,30 @@ class MailMergeApp {
     const img = new Image();
     img.onload = () => {
       if (this.canvas && this.ctx) {
+        // Store original dimensions
+        this.originalImageWidth = img.width;
+        this.originalImageHeight = img.height;
+        
         this.canvas.width = img.width;
         this.canvas.height = img.height;
+        
+        // Initial zoom to fit
+        this.zoomToFit();
+        
         this.ctx.drawImage(img, 0, 0);
 
-        // Show field definition section
+        // Show field definition section and zoom controls
         const fieldDefinition = document.getElementById('fieldDefinition') as HTMLElement;
         fieldDefinition.classList.remove('hidden');
+        
+        const zoomControls = document.getElementById('zoomControls') as HTMLElement;
+        if (zoomControls) {
+          zoomControls.style.display = 'flex';
+        }
 
-        // Add mouse event handlers for field interaction
+        // Add mouse event handlers for field interaction and zoom
         this.bindCanvasEvents();
+        this.bindCanvasZoom();
       }
     };
     img.src = imageUrl;
@@ -206,39 +282,41 @@ class MailMergeApp {
     }
 
     fieldList.innerHTML = `
-      <div class="space-y-4">
-        <h4 class="text-lg font-semibold text-emerald-200 mb-4">Configured Fields (${this.fields.length})</h4>
+      <div class="space-y-3">
+        <h4 class="text-sm font-semibold text-emerald-300">Fields (${this.fields.length})</h4>
         ${this.fields.map((field, index) => `
-          <div class="bg-white/10 border border-emerald-300/30 rounded-xl p-4">
-            <div class="flex items-center justify-between mb-3">
+          <div class="bg-gray-600/50 border border-gray-500 rounded-lg p-3">
+            <div class="flex items-center justify-between mb-2">
               <div class="flex items-center">
-                <span class="w-8 h-8 bg-emerald-500 text-white rounded-full flex items-center justify-center text-sm font-bold mr-3">${index + 1}</span>
-                <span class="text-white font-semibold text-lg">${field.name}</span>
+                <span class="w-6 h-6 bg-emerald-500 text-white rounded-full flex items-center justify-center text-xs font-bold mr-2">${index + 1}</span>
+                <span class="text-white font-medium text-sm">${field.name}</span>
               </div>
-              <button onclick="window.mailMergeApp.removeField(${index})" class="bg-red-500 hover:bg-red-600 text-white p-2 rounded-lg transition-colors">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+              <button onclick="window.mailMergeApp.removeField(${index})" class="bg-red-500 hover:bg-red-600 text-white p-1 rounded transition-colors">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                 </svg>
               </button>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="space-y-2">
               <div>
-                <label class="block text-emerald-200 text-sm font-medium mb-2">Demo Text</label>
+                <label class="block text-emerald-300 text-xs font-medium mb-1">Demo Text</label>
                 <input type="text" value="${field.demoText || ''}" 
-                       placeholder="Add demo text here..."
+                       placeholder="Preview text..."
                        onchange="window.mailMergeApp.updateField(${index}, 'demoText', this.value)"
                        oninput="window.mailMergeApp.updateField(${index}, 'demoText', this.value)"
-                       class="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                       class="w-full bg-gray-700/50 border border-gray-500 rounded px-2 py-1 text-white text-xs placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-emerald-500">
               </div>
-              <div>
-                <label class="block text-emerald-200 text-sm font-medium mb-2">Font Size</label>
-                <input type="number" value="${field.fontSize}" onchange="window.mailMergeApp.updateField(${index}, 'fontSize', this.value)" 
-                       class="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-emerald-500">
-              </div>
-              <div>
-                <label class="block text-emerald-200 text-sm font-medium mb-2">Text Color</label>
-                <input type="color" value="${field.color}" onchange="window.mailMergeApp.updateField(${index}, 'color', this.value)" 
-                       class="w-full h-10 bg-white/10 border border-white/20 rounded-lg cursor-pointer">
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="block text-emerald-300 text-xs font-medium mb-1">Size</label>
+                  <input type="number" value="${field.fontSize}" onchange="window.mailMergeApp.updateField(${index}, 'fontSize', this.value)" 
+                         class="w-full bg-gray-700/50 border border-gray-500 rounded px-2 py-1 text-white text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                </div>
+                <div>
+                  <label class="block text-emerald-300 text-xs font-medium mb-1">Color</label>
+                  <input type="color" value="${field.color}" onchange="window.mailMergeApp.updateField(${index}, 'color', this.value)" 
+                         class="w-full h-7 bg-gray-700/50 border border-gray-500 rounded cursor-pointer">
+                </div>
               </div>
             </div>
           </div>
@@ -289,32 +367,38 @@ class MailMergeApp {
     const headers = Object.keys(data[0] || {});
 
     preview.innerHTML = `
-      <div class="bg-white/10 border border-white/20 rounded-2xl p-6">
-        <h3 class="text-xl font-semibold text-white mb-4 flex items-center">
-          <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div class="bg-gray-600/50 border border-gray-500 rounded-lg p-3 mt-3">
+        <h4 class="text-sm font-semibold text-white mb-2 flex items-center">
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
           </svg>
-          CSV Preview - ${data.length} rows
-        </h3>
-        <div class="bg-white rounded-xl shadow-lg overflow-hidden">
-          <div class="overflow-x-auto max-h-80">
-            <table class="w-full">
-              <thead class="bg-gray-50">
+          CSV Preview (${data.length} rows)
+        </h4>
+        <div class="bg-gray-700 rounded overflow-hidden">
+          <div class="overflow-x-auto max-h-40">
+            <table class="w-full text-xs">
+              <thead class="bg-gray-800">
                 <tr>
-                  ${headers.map(header => `<th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">${header}</th>`).join('')}
+                  ${headers.map(header => `<th class="px-2 py-1 text-left text-gray-300 font-medium">${header}</th>`).join('')}
                 </tr>
               </thead>
-              <tbody class="bg-white divide-y divide-gray-200">
-                ${data.slice(0, 5).map((row, rowIndex) => `
-                  <tr class="${rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'}">
-                    ${headers.map(header => `<td class="px-4 py-3 text-sm text-gray-900 border-b">${row[header] || '-'}</td>`).join('')}
+              <tbody class="text-gray-200">
+                ${data.slice(0, 5).map(row => `
+                  <tr class="border-b border-gray-600">
+                    ${headers.map(header => `<td class="px-2 py-1">${row[header] || ''}</td>`).join('')}
                   </tr>
                 `).join('')}
+                ${data.length > 5 ? `
+                  <tr>
+                    <td colspan="${headers.length}" class="px-2 py-1 text-center text-gray-400 italic">
+                      ... and ${data.length - 5} more rows
+                    </td>
+                  </tr>
+                ` : ''}
               </tbody>
             </table>
           </div>
         </div>
-        ${data.length > 5 ? `<p class="text-orange-200 text-sm mt-3 italic">Showing first 5 rows of ${data.length} total rows</p>` : ''}
       </div>
     `;
   }
@@ -458,6 +542,73 @@ class MailMergeApp {
     });
   }
 
+  private bindZoomControls() {
+    const zoomIn = document.getElementById('zoomIn');
+    const zoomOut = document.getElementById('zoomOut');
+    const zoomFit = document.getElementById('zoomFit');
+    const zoomReset = document.getElementById('zoomReset');
+
+    zoomIn?.addEventListener('click', () => this.zoomIn());
+    zoomOut?.addEventListener('click', () => this.zoomOut());
+    zoomFit?.addEventListener('click', () => this.zoomToFit());
+    zoomReset?.addEventListener('click', () => this.zoomToActual());
+  }
+
+  private zoomIn() {
+    this.setZoom(Math.min(this.zoomLevel * 1.2, this.maxZoom));
+  }
+
+  private zoomOut() {
+    this.setZoom(Math.max(this.zoomLevel / 1.2, this.minZoom));
+  }
+
+  private zoomToFit() {
+    if (!this.canvas || !this.originalImageWidth || !this.originalImageHeight) return;
+    
+    const previewContainer = document.getElementById('imagePreview') as HTMLElement;
+    const containerWidth = previewContainer.offsetWidth - 64; // account for padding
+    const containerHeight = previewContainer.offsetHeight - 64;
+    
+    const scaleX = containerWidth / this.originalImageWidth;
+    const scaleY = containerHeight / this.originalImageHeight;
+    const scale = Math.min(scaleX, scaleY, 1); // Don't zoom in beyond 100%
+    
+    this.setZoom(scale);
+  }
+
+  private zoomToActual() {
+    this.setZoom(1);
+  }
+
+  private setZoom(newZoom: number) {
+    this.zoomLevel = Math.max(this.minZoom, Math.min(this.maxZoom, newZoom));
+    this.updateCanvasDisplay();
+    this.updateZoomDisplay();
+  }
+
+  private updateZoomDisplay() {
+    const zoomDisplay = document.getElementById('zoomLevel');
+    if (zoomDisplay) {
+      zoomDisplay.textContent = `${Math.round(this.zoomLevel * 100)}%`;
+    }
+  }
+
+  private updateCanvasDisplay() {
+    if (!this.canvas || !this.originalImageWidth || !this.originalImageHeight) return;
+    
+    const displayWidth = this.originalImageWidth * this.zoomLevel;
+    const displayHeight = this.originalImageHeight * this.zoomLevel;
+    
+    this.canvas.style.width = `${displayWidth}px`;
+    this.canvas.style.height = `${displayHeight}px`;
+  }
+
+  private bindCanvasZoom() {
+    // Only button-based zoom controls are used
+    // Panning is handled in the canvas mouse event handlers
+    // This method is kept for future zoom-related functionality
+  }
+
   // Mouse interaction methods
   private getCanvasCoordinates(e: MouseEvent): { x: number, y: number } {
     if (!this.canvas) return { x: 0, y: 0 };
@@ -496,6 +647,22 @@ class MailMergeApp {
   private handleMouseDown(e: MouseEvent) {
     if (!this.canvas) return;
     
+    // Handle middle mouse button for panning
+    if (e.button === 1) {
+      e.preventDefault();
+      this.isPanning = true;
+      this.panStartX = e.clientX;
+      this.panStartY = e.clientY;
+      const canvasContainer = document.getElementById('canvasContainer');
+      if (canvasContainer) {
+        canvasContainer.style.cursor = 'grabbing';
+      }
+      return; // Don't process as field interaction
+    }
+    
+    // Only process left mouse button for field interactions
+    if (e.button !== 0) return;
+    
     const coords = this.getCanvasCoordinates(e);
     const hit = this.getFieldAtPosition(coords.x, coords.y);
     
@@ -526,6 +693,9 @@ class MailMergeApp {
   private handleMouseMove(e: MouseEvent) {
     if (!this.canvas) return;
     
+    // Panning is handled by global mouse events, so skip if panning
+    if (this.isPanning) return;
+    
     const coords = this.getCanvasCoordinates(e);
     
     if (this.isDragging && this.selectedFieldIndex >= 0) {
@@ -551,6 +721,17 @@ class MailMergeApp {
   }
 
   private handleMouseUp(e: MouseEvent) {
+    // Handle panning release
+    if (e.button === 1 && this.isPanning) {
+      this.isPanning = false;
+      const canvasContainer = document.getElementById('canvasContainer');
+      if (canvasContainer) {
+        canvasContainer.style.cursor = '';
+      }
+      return;
+    }
+    
+    // Handle field interaction release
     this.isDragging = false;
     this.isResizing = false;
     this.selectedFieldIndex = -1;
@@ -560,19 +741,21 @@ class MailMergeApp {
   }
 
   private handleWheel(e: WheelEvent) {
-    e.preventDefault();
     if (!this.canvas) return;
     
     const coords = this.getCanvasCoordinates(e);
     const hit = this.getFieldAtPosition(coords.x, coords.y);
     
     if (hit.index >= 0) {
+      // Only prevent default and handle field resizing if hovering over a field
+      e.preventDefault();
       const field = this.fields[hit.index];
       const delta = e.deltaY > 0 ? -2 : 2;
       field.fontSize = Math.max(8, Math.min(72, field.fontSize + delta));
       this.drawFields();
       this.updateFieldList();
     }
+    // If not hovering over a field, let the zoom functionality handle it
   }
 
   private bindCanvasEvents() {
@@ -591,6 +774,69 @@ class MailMergeApp {
     this.canvas.addEventListener('mouseup', (e) => this.handleMouseUp(e));
     this.canvas.addEventListener('wheel', (e) => this.handleWheel(e));
     this.canvas.addEventListener('mouseleave', (e) => this.handleMouseUp(e));
+  }
+
+  private bindKeyboardShortcuts() {
+    document.addEventListener('keydown', (e: KeyboardEvent) => {
+      // Only handle shortcuts when canvas is active
+      if (!this.canvas || !document.getElementById('zoomControls')?.style.display || document.getElementById('zoomControls')?.style.display === 'none') {
+        return;
+      }
+
+      // Ctrl/Cmd + Plus/Equals for zoom in
+      if ((e.ctrlKey || e.metaKey) && (e.key === '+' || e.key === '=')) {
+        e.preventDefault();
+        this.zoomIn();
+      }
+      
+      // Ctrl/Cmd + Minus for zoom out
+      if ((e.ctrlKey || e.metaKey) && e.key === '-') {
+        e.preventDefault();
+        this.zoomOut();
+      }
+      
+      // Ctrl/Cmd + 0 for zoom to fit
+      if ((e.ctrlKey || e.metaKey) && e.key === '0') {
+        e.preventDefault();
+        this.zoomToFit();
+      }
+      
+      // Ctrl/Cmd + 1 for actual size
+      if ((e.ctrlKey || e.metaKey) && e.key === '1') {
+        e.preventDefault();
+        this.zoomToActual();
+      }
+    });
+  }
+
+  private bindGlobalMouseEvents() {
+    // Global mouse move for panning
+    document.addEventListener('mousemove', (e: MouseEvent) => {
+      if (this.isPanning) {
+        const deltaX = e.clientX - this.panStartX;
+        const deltaY = e.clientY - this.panStartY;
+        
+        const canvasContainer = document.getElementById('canvasContainer');
+        if (canvasContainer) {
+          canvasContainer.scrollLeft -= deltaX;
+          canvasContainer.scrollTop -= deltaY;
+        }
+        
+        this.panStartX = e.clientX;
+        this.panStartY = e.clientY;
+      }
+    });
+
+    // Global mouse up for panning
+    document.addEventListener('mouseup', (e: MouseEvent) => {
+      if (e.button === 1 && this.isPanning) {
+        this.isPanning = false;
+        const canvasContainer = document.getElementById('canvasContainer');
+        if (canvasContainer) {
+          canvasContainer.style.cursor = '';
+        }
+      }
+    });
   }
 }
 

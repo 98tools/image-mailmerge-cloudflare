@@ -1,1 +1,99 @@
 @import "tailwindcss";
+
+/* Custom scrollbar for sidebar */
+#sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+
+#sidebar::-webkit-scrollbar-track {
+  background: rgba(55, 65, 81, 0.5);
+  border-radius: 3px;
+}
+
+#sidebar::-webkit-scrollbar-thumb {
+  background: rgba(107, 114, 128, 0.8);
+  border-radius: 3px;
+}
+
+#sidebar::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.8);
+}
+
+/* Custom resize handle effects */
+#resizeHandle {
+  position: relative;
+  transition: background-color 0.2s ease;
+}
+
+#resizeHandle:hover::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 2px;
+  height: 40px;
+  background: rgba(147, 51, 234, 0.6);
+  border-radius: 1px;
+}
+
+/* Canvas container styling */
+#imagePreview canvas {
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+}
+
+#canvasContainer {
+  scroll-behavior: smooth;
+}
+
+#canvasContainer::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+#canvasContainer::-webkit-scrollbar-track {
+  background: rgba(55, 65, 81, 0.5);
+  border-radius: 4px;
+}
+
+#canvasContainer::-webkit-scrollbar-thumb {
+  background: rgba(107, 114, 128, 0.8);
+  border-radius: 4px;
+}
+
+#canvasContainer::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.8);
+}
+
+#canvasContainer::-webkit-scrollbar-corner {
+  background: rgba(55, 65, 81, 0.5);
+}
+
+/* Smooth transitions for interactive elements */
+.transition-all {
+  transition: all 0.2s ease;
+}
+
+/* Custom styling for form inputs in dark theme */
+input[type="file"] + label:hover {
+  transform: translateY(-1px);
+}
+
+/* Progress bar animation */
+@keyframes progress-shine {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+#progressBar {
+  background: linear-gradient(
+    90deg,
+    #8b5cf6 0%,
+    #a855f7 25%,
+    #c084fc 50%,
+    #a855f7 75%,
+    #8b5cf6 100%
+  );
+  background-size: 200% 100%;
+  animation: progress-shine 2s ease-in-out infinite;
+}
