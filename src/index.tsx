@@ -121,6 +121,31 @@ app.get('/', (c) => {
               <div id="csvPreview" class="mt-4"></div>
             </div>
 
+            {/* Field Mapping Section */}
+            <div id="fieldMapping" class="bg-gray-700/50 rounded-lg p-4 hidden">
+              <div class="flex items-center mb-4">
+                <div class="w-8 h-8 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full flex items-center justify-center text-white font-bold text-sm mr-3">
+                  4
+                </div>
+                <h3 class="text-lg font-semibold text-white">Field Mapping</h3>
+              </div>
+              
+              <div class="bg-purple-500/10 border border-purple-400/30 rounded-lg p-3 mb-4">
+                <p class="text-purple-300 text-sm">Map your template fields to CSV columns. Unmapped fields will be left empty.</p>
+              </div>
+              
+              <div id="mappingList" class="space-y-3"></div>
+              
+              <div class="flex gap-2 mt-4">
+                <button id="autoMapFields" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-3 rounded-lg transition-colors text-sm">
+                  Auto Map
+                </button>
+                <button id="clearMapping" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-3 rounded-lg transition-colors text-sm">
+                  Clear All
+                </button>
+              </div>
+            </div>
+
             {/* Progress Section */}
             <div id="progress" class="bg-gray-700/50 rounded-lg p-4 hidden">
               <h3 class="text-lg font-semibold text-white mb-4">Processing</h3>

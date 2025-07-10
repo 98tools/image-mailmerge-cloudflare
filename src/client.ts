@@ -13,10 +13,17 @@ interface CSVRow {
   [key: string]: string;
 }
 
+interface FieldMapping {
+  fieldName: string;
+  csvColumn: string | null;
+}
+
 class MailMergeApp {
   private templateImage: File | null = null;
   private csvData: CSVRow[] | null = null;
+  private csvHeaders: string[] = [];
   private fields: Field[] = [];
+  private fieldMappings: FieldMapping[] = [];
   private canvas: HTMLCanvasElement | null = null;
   private ctx: CanvasRenderingContext2D | null = null;
   
@@ -76,6 +83,13 @@ class MailMergeApp {
     // Handle clear fields button
     const clearFieldsBtn = document.getElementById('clearFields') as HTMLButtonElement;
     clearFieldsBtn?.addEventListener('click', () => this.clearFields());
+
+    // Handle field mapping buttons
+    const autoMapBtn = document.getElementById('autoMapFields') as HTMLButtonElement;
+    autoMapBtn?.addEventListener('click', () => this.autoMapFields());
+
+    const clearMappingBtn = document.getElementById('clearMapping') as HTMLButtonElement;
+    clearMappingBtn?.addEventListener('click', () => this.clearFieldMapping());
 
     // Handle file input styling
     this.bindFileInputStyling();
@@ -203,7 +217,7 @@ class MailMergeApp {
   }
 
   private addFieldAtPosition(x: number, y: number) {
-    const fieldName = prompt('Enter field name (must match CSV column):');
+    const fieldName = prompt('Enter field name:');
     if (!fieldName) return;
 
     const field: Field = {
@@ -216,8 +230,21 @@ class MailMergeApp {
     };
 
     this.fields.push(field);
+    
+    // Add mapping for new field
+    this.fieldMappings.push({
+      fieldName: fieldName,
+      csvColumn: null
+    });
+    
+    // Try to auto-map the new field if CSV is already loaded
+    if (this.csvHeaders.length > 0) {
+      this.autoMapFields();
+    }
+    
     this.drawFields();
     this.updateFieldList();
+    this.updateFieldMappingDisplay();
     this.checkReadyToGenerate();
   }
 
@@ -335,16 +362,27 @@ class MailMergeApp {
   }
 
   public removeField(index: number) {
+    const removedField = this.fields[index];
     this.fields.splice(index, 1);
+    
+    // Remove corresponding mapping
+    const mappingIndex = this.fieldMappings.findIndex(m => m.fieldName === removedField.name);
+    if (mappingIndex >= 0) {
+      this.fieldMappings.splice(mappingIndex, 1);
+    }
+    
     this.drawFields();
     this.updateFieldList();
+    this.updateFieldMappingDisplay();
     this.checkReadyToGenerate();
   }
 
   private clearFields() {
     this.fields = [];
+    this.fieldMappings = [];
     this.drawFields();
     this.updateFieldList();
+    this.updateFieldMappingDisplay();
     this.checkReadyToGenerate();
   }
 
@@ -357,8 +395,10 @@ class MailMergeApp {
     const text = await file.text();
     const parsed = (window as any).Papa.parse(text, { header: true, skipEmptyLines: true });
     this.csvData = parsed.data as CSVRow[];
+    this.csvHeaders = Object.keys(this.csvData[0] || {});
 
     this.displayCSVPreview(this.csvData);
+    this.initializeFieldMapping();
     this.checkReadyToGenerate();
   }
 
@@ -444,12 +484,20 @@ class MailMergeApp {
         tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
         tempCtx.drawImage(img, 0, 0);
 
-        // Draw text fields
+        // Draw text fields using field mappings
         this.fields.forEach(field => {
-          const text = row[field.name] || '';
-          tempCtx.font = `${field.fontSize}px Arial`;
-          tempCtx.fillStyle = field.color;
-          tempCtx.fillText(text, field.x, field.y);
+          // Find the mapping for this field
+          const mapping = this.fieldMappings.find(m => m.fieldName === field.name);
+          const csvColumn = mapping?.csvColumn;
+          
+          // Get text from mapped CSV column or leave empty if unmapped
+          const text = (csvColumn && row[csvColumn]) ? row[csvColumn] : '';
+          
+          if (text) { // Only draw if there's text to display
+            tempCtx.font = `${field.fontSize}px Arial`;
+            tempCtx.fillStyle = field.color;
+            tempCtx.fillText(text, field.x, field.y);
+          }
         });
 
         // Convert to blob and add to zip
@@ -756,6 +804,102 @@ class MailMergeApp {
       this.updateFieldList();
     }
     // If not hovering over a field, let the zoom functionality handle it
+  }
+
+  private initializeFieldMapping() {
+    // Initialize mappings for all fields
+    this.fieldMappings = this.fields.map(field => ({
+      fieldName: field.name,
+      csvColumn: null
+    }));
+
+    // Try to auto-map fields that match CSV columns exactly
+    this.autoMapFields();
+
+    // Show the field mapping section
+    const fieldMappingSection = document.getElementById('fieldMapping') as HTMLElement;
+    if (fieldMappingSection && this.fields.length > 0) {
+      fieldMappingSection.classList.remove('hidden');
+      this.updateFieldMappingDisplay();
+    }
+  }
+
+  private autoMapFields() {
+    this.fieldMappings.forEach(mapping => {
+      // Try exact match first
+      const exactMatch = this.csvHeaders.find(header => 
+        header.toLowerCase() === mapping.fieldName.toLowerCase()
+      );
+      
+      if (exactMatch) {
+        mapping.csvColumn = exactMatch;
+        return;
+      }
+
+      // Try partial match
+      const partialMatch = this.csvHeaders.find(header => 
+        header.toLowerCase().includes(mapping.fieldName.toLowerCase()) ||
+        mapping.fieldName.toLowerCase().includes(header.toLowerCase())
+      );
+      
+      if (partialMatch) {
+        mapping.csvColumn = partialMatch;
+      }
+    });
+
+    this.updateFieldMappingDisplay();
+    this.checkReadyToGenerate();
+  }
+
+  private clearFieldMapping() {
+    this.fieldMappings.forEach(mapping => {
+      mapping.csvColumn = null;
+    });
+    this.updateFieldMappingDisplay();
+    this.checkReadyToGenerate();
+  }
+
+  private updateFieldMappingDisplay() {
+    const mappingList = document.getElementById('mappingList') as HTMLElement;
+    if (!mappingList) return;
+
+    mappingList.innerHTML = this.fieldMappings.map((mapping, index) => {
+      const isUnmapped = !mapping.csvColumn;
+      const availableColumns = this.csvHeaders.filter(header => 
+        !this.fieldMappings.some(m => m.csvColumn === header && m !== mapping)
+      );
+
+      return `
+        <div class="bg-gray-600/50 border ${isUnmapped ? 'border-yellow-400/50' : 'border-gray-500'} rounded-lg p-3">
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center">
+              <span class="w-6 h-6 bg-purple-500 text-white rounded-full flex items-center justify-center text-xs font-bold mr-2">${index + 1}</span>
+              <span class="text-white font-medium text-sm">${mapping.fieldName}</span>
+            </div>
+            ${isUnmapped ? '<div class="w-2 h-2 bg-yellow-400 rounded-full" title="Unmapped field"></div>' : '<div class="w-2 h-2 bg-green-400 rounded-full" title="Mapped field"></div>'}
+          </div>
+          <select onchange="window.mailMergeApp.updateFieldMapping('${mapping.fieldName}', this.value)" 
+                  class="w-full bg-gray-700/50 border border-gray-500 rounded px-2 py-1 text-white text-xs focus:outline-none focus:ring-1 focus:ring-purple-500">
+            <option value="">-- Select CSV Column --</option>
+            ${availableColumns.map(header => `
+              <option value="${header}" ${mapping.csvColumn === header ? 'selected' : ''}>${header}</option>
+            `).join('')}
+            ${mapping.csvColumn && !availableColumns.includes(mapping.csvColumn) ? `
+              <option value="${mapping.csvColumn}" selected>${mapping.csvColumn}</option>
+            ` : ''}
+          </select>
+        </div>
+      `;
+    }).join('');
+  }
+
+  public updateFieldMapping(fieldName: string, csvColumn: string) {
+    const mapping = this.fieldMappings.find(m => m.fieldName === fieldName);
+    if (mapping) {
+      mapping.csvColumn = csvColumn || null;
+      this.updateFieldMappingDisplay();
+      this.checkReadyToGenerate();
+    }
   }
 
   private bindCanvasEvents() {
