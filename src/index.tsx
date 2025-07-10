@@ -16,9 +16,9 @@ app.get('/', (c) => {
         <div class="flex items-center justify-between">
           <div class="flex items-center space-x-4">
             <h1 class="text-2xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
-              Mail Merge Studio
+              Mail Merge Tool
             </h1>
-            <span class="text-sm text-gray-400">Canvas Dashboard</span>
+            <span class="text-sm text-gray-400">for image</span>
           </div>
           <div class="flex items-center space-x-4">
             <button id="generateImages" disabled 
@@ -39,7 +39,7 @@ app.get('/', (c) => {
         {/* Resizable Sidebar */}
         <div id="sidebar" class="bg-gray-800 border-r border-gray-700 flex flex-col" style="width: 400px; min-width: 300px; max-width: 600px;">
           <div class="p-4 border-b border-gray-700">
-            <h2 class="text-lg font-semibold text-gray-200">Tools & Options</h2>
+            <h2 class="text-lg font-semibold text-gray-200">Options</h2>
           </div>
           
           <div class="flex-1 overflow-y-auto p-4 space-y-6 mb-20">
@@ -141,7 +141,7 @@ app.get('/', (c) => {
             {/* Preview Header */}
             <div class="bg-gray-800 border-b border-gray-700 px-6 py-3">
               <div class="flex items-center justify-between">
-                <h2 class="text-lg font-semibold text-gray-200">Preview Canvas</h2>
+                <h2 class="text-lg font-semibold text-gray-200">Preview</h2>
                 <div class="flex items-center space-x-3" id="zoomControls" style="display: none;">
                   <button id="zoomOut" title="Zoom Out (Ctrl+-)" class="bg-gray-700 hover:bg-gray-600 text-white p-2 rounded-lg transition-colors">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
