@@ -308,6 +308,21 @@ class MailMergeApp {
       return;
     }
 
+    // Tailwind color presets
+    const colorPresets = [
+      { name: 'Black', value: '#000000' },
+      { name: 'White', value: '#ffffff' },
+      { name: 'Gray', value: '#6b7280' },
+      { name: 'Red', value: '#ef4444' },
+      { name: 'Orange', value: '#f97316' },
+      { name: 'Yellow', value: '#eab308' },
+      { name: 'Green', value: '#22c55e' },
+      { name: 'Blue', value: '#3b82f6' },
+      { name: 'Indigo', value: '#6366f1' },
+      { name: 'Purple', value: '#a855f7' },
+      { name: 'Pink', value: '#ec4899' }
+    ];
+
     fieldList.innerHTML = `
       <div class="space-y-3">
         <h4 class="text-sm font-semibold text-emerald-300">Fields (${this.fields.length})</h4>
@@ -340,9 +355,30 @@ class MailMergeApp {
                          class="w-full bg-gray-700/50 border border-gray-500 rounded px-2 py-1 text-white text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500">
                 </div>
                 <div>
-                  <label class="block text-emerald-300 text-xs font-medium mb-1">Color</label>
-                  <input type="color" value="${field.color}" onchange="window.mailMergeApp.updateField(${index}, 'color', this.value)" 
-                         class="w-full h-7 bg-gray-700/50 border border-gray-500 rounded cursor-pointer">
+                  <label class="block text-emerald-300 text-xs font-medium mb-1">Font Size</label>
+                  <input type="range" min="8" max="72" value="${field.fontSize}" 
+                         onchange="window.mailMergeApp.updateField(${index}, 'fontSize', this.value)"
+                         oninput="window.mailMergeApp.updateField(${index}, 'fontSize', this.value)"
+                         class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider">
+                </div>
+              </div>
+              <div>
+                <label class="block text-emerald-300 text-xs font-medium mb-2">Text Color</label>
+                <div class="space-y-2">
+                  <div class="flex flex-wrap gap-1">
+                    ${colorPresets.map(color => `
+                      <button onclick="window.mailMergeApp.updateField(${index}, 'color', '${color.value}')"
+                              class="w-6 h-6 rounded border-2 ${field.color === color.value ? 'border-white' : 'border-gray-400'} hover:border-white transition-colors"
+                              style="background-color: ${color.value}"
+                              title="${color.name}">
+                      </button>
+                    `).join('')}
+                  </div>
+                  <details class="mt-2">
+                    <summary class="text-xs text-gray-400 cursor-pointer hover:text-gray-300">Custom Color</summary>
+                    <input type="color" value="${field.color}" onchange="window.mailMergeApp.updateField(${index}, 'color', this.value)" 
+                           class="w-full h-8 bg-gray-700/50 border border-gray-500 rounded cursor-pointer mt-1">
+                  </details>
                 </div>
               </div>
             </div>

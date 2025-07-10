@@ -97,3 +97,52 @@ input[type="file"] + label:hover {
   background-size: 200% 100%;
   animation: progress-shine 2s ease-in-out infinite;
 }
+
+/* Custom range slider styling */
+.slider {
+  -webkit-appearance: none;
+  appearance: none;
+  background: #374151;
+  border-radius: 5px;
+  outline: none;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #10b981;
+  cursor: pointer;
+  border: 2px solid #ffffff;
+}
+
+.slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #10b981;
+  cursor: pointer;
+  border: 2px solid #ffffff;
+  box-sizing: border-box;
+}
+
+/* Custom details/summary styling */
+details summary {
+  list-style: none;
+}
+
+details summary::-webkit-details-marker {
+  display: none;
+}
+
+details summary::before {
+  content: '▶';
+  margin-right: 4px;
+  transition: transform 0.2s;
+}
+
+details[open] summary::before {
+  transform: rotate(90deg);
+}
