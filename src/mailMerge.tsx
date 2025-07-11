@@ -32,6 +32,13 @@ const FONT_FAMILY_OPTIONS = [
   { name: 'Lucida Console', value: '"Lucida Console", monospace' }
 ];
 
+// Add text alignment options constant
+const TEXT_ALIGN_OPTIONS = [
+  { name: 'Left', value: 'left' as const },
+  { name: 'Center', value: 'center' as const },
+  { name: 'Right', value: 'right' as const }
+];
+
 interface Field {
   name: string;
   x: number;
@@ -40,6 +47,7 @@ interface Field {
   fontFamily: string;
   color: string;
   demoText: string;
+  textAlign: 'left' | 'center' | 'right';
 }
 
 interface CSVRow {
@@ -247,7 +255,8 @@ const MailMerge: React.FC = () => {
       fontSize: 24,
       fontFamily: 'Arial, sans-serif',
       color: '#000000',
-      demoText: ''
+      demoText: '',
+      textAlign: 'left'
     };
 
     setFields(prev => [...prev, field]);
@@ -303,10 +312,16 @@ const MailMerge: React.FC = () => {
       // Draw demo text if available
       if (displayText && displayText.trim()) {
         // When demo text is present, only show the demo text, no pointer
-        ctx.font = `${field.fontSize}px ${field.fontFamily || 'Arial, sans-serif'}`;
-        ctx.fillStyle = field.color;
-        ctx.textBaseline = 'top'; // Match the textBaseline used in generation
-        ctx.fillText(displayText, field.x, field.y);
+        drawFormattedText(
+          ctx,
+          displayText,
+          field.x,
+          field.y,
+          field.fontSize,
+          field.fontFamily || 'Arial, sans-serif',
+          field.color,
+          field.textAlign
+        );
       } else {
         // When no demo text, show the field pointer and name
         // Draw marker circle
@@ -339,11 +354,28 @@ const MailMerge: React.FC = () => {
         ctx.strokeStyle = '#10b981';
         ctx.lineWidth = 2;
         if (displayText && displayText.trim()) {
-          const metrics = ctx.measureText(displayText);
+          // Calculate text bounds considering alignment
+          const segments = parseMarkdownText(displayText);
+          let totalWidth = 0;
+          
+          // Calculate total width with formatting
+          segments.forEach(segment => {
+            applyTextFormatting(ctx, segment.formats, field.fontFamily || 'Arial, sans-serif', field.fontSize);
+            totalWidth += ctx.measureText(segment.text).width;
+          });
+          
+          // Calculate text bounds based on alignment
+          let textStartX = field.x;
+          if (field.textAlign === 'center') {
+            textStartX = field.x - totalWidth / 2;
+          } else if (field.textAlign === 'right') {
+            textStartX = field.x - totalWidth;
+          }
+          
           ctx.strokeRect(
-            field.x - 2, 
+            textStartX - 2, 
             field.y - 2, 
-            metrics.width + 4, 
+            totalWidth + 4, 
             field.fontSize + 4
           );
         } else {
@@ -379,9 +411,26 @@ const MailMerge: React.FC = () => {
       const displayText = getFieldDisplayText(field);
       
       if (displayText && displayText.trim()) {
-        // Check text field
-        const metrics = ctxRef.current.measureText(displayText);
-        if (x >= field.x && x <= field.x + metrics.width &&
+        // Calculate text bounds considering alignment
+        const segments = parseMarkdownText(displayText);
+        let totalWidth = 0;
+        
+        // Calculate total width with formatting
+        segments.forEach(segment => {
+          applyTextFormatting(ctxRef.current!, segment.formats, field.fontFamily || 'Arial, sans-serif', field.fontSize);
+          totalWidth += ctxRef.current!.measureText(segment.text).width;
+        });
+        
+        // Calculate text bounds based on alignment
+        let textStartX = field.x;
+        if (field.textAlign === 'center') {
+          textStartX = field.x - totalWidth / 2;
+        } else if (field.textAlign === 'right') {
+          textStartX = field.x - totalWidth;
+        }
+        
+        // Check if click is within text bounds
+        if (x >= textStartX && x <= textStartX + totalWidth &&
             y >= field.y && y <= field.y + field.fontSize) {
           return { index: i, isResizeHandle: false };
         }
@@ -780,10 +829,16 @@ const MailMerge: React.FC = () => {
           const text = mapping?.csvColumn ? row[mapping.csvColumn] || '' : field.demoText || '';
           
           if (text) {
-            ctx.font = `${field.fontSize}px ${field.fontFamily}`;
-            ctx.fillStyle = field.color;
-            ctx.textBaseline = 'top';
-            ctx.fillText(text, field.x, field.y);
+            drawFormattedText(
+              ctx,
+              text,
+              field.x,
+              field.y,
+              field.fontSize,
+              field.fontFamily,
+              field.color,
+              field.textAlign
+            );
           }
         });
 
@@ -1028,6 +1083,15 @@ const MailMerge: React.FC = () => {
                 
                 <div className="bg-emerald-500/10 border border-emerald-400/30 rounded-lg p-3 mb-4">
                   <p className="text-emerald-300 text-sm">Click on the preview to add text fields. Use demo text to preview positioning. Drag fields to move, scroll over fields to resize.</p>
+                  <div className="mt-2 text-xs text-emerald-200">
+                    <p className="font-medium mb-1">Text Formatting (Markdown-style):</p>
+                    <div className="space-y-1">
+                      <p>• <strong>**Bold text**</strong> - Use double asterisks</p>
+                      <p>• <em>*Italic text*</em> - Use single asterisks</p>
+                      <p>• <u>__Underlined text__</u> - Use double underscores</p>
+                      <p>• <s>~~Strikethrough text~~</s> - Use double tildes</p>
+                    </div>
+                  </div>
                 </div>
                 
                 <div className="space-y-3 mb-4">
@@ -1084,6 +1148,20 @@ const MailMerge: React.FC = () => {
                           ))}
                         </select>
                       </div>
+                      
+                      {/* Text Alignment Control */}
+                      <div className="mb-2">
+                        <label className="block text-emerald-300 text-xs font-medium mb-1">Text Alignment</label>
+                        <select
+                          value={field.textAlign}
+                          onChange={(e) => updateField(index, 'textAlign', e.target.value)}
+                          className="bg-gray-700 text-white px-2 py-1 rounded text-sm w-full"
+                        >
+                          {TEXT_ALIGN_OPTIONS.map(option => (
+                            <option key={option.value} value={option.value}>{option.name}</option>
+                          ))}
+                        </select>
+                      </div>
                       <div>
                         <label className="block text-emerald-300 text-xs font-medium mb-2">Text Color</label>
                         <div className="space-y-2">
@@ -1107,6 +1185,25 @@ const MailMerge: React.FC = () => {
                               className="w-full h-8 bg-gray-700/50 border border-gray-500 rounded cursor-pointer mt-1"
                             />
                           </details>
+                        </div>
+                      </div>
+
+                      {/* Text Alignment Controls */}
+                      <div className="mt-3">
+                        <label className="block text-emerald-300 text-xs font-medium mb-2">Text Alignment</label>
+                        <div className="flex gap-2">
+                          {TEXT_ALIGN_OPTIONS.map(option => (
+                            <button
+                              key={option.value}
+                              onClick={() => updateField(index, 'textAlign', option.value)}
+                              className={`flex-1 px-3 py-1 rounded-lg text-sm font-medium transition-all flex items-center justify-center
+                                ${field.textAlign === option.value ? 'bg-emerald-500 text-white' : 'bg-gray-700 text-emerald-300 hover:bg-emerald-600'}
+                              `}
+                              title={option.name}
+                            >
+                              {option.name}
+                            </button>
+                          ))}
                         </div>
                       </div>
                     </div>
@@ -1435,3 +1532,158 @@ const MailMerge: React.FC = () => {
 };
 
 export default MailMerge;
+
+// Function to parse markdown-like text and apply formatting
+const parseMarkdownText = (text: string) => {
+  // Process text by replacing markdown patterns sequentially
+  let processedText = text;
+  const segments: Array<{ text: string; formats: string[] }> = [];
+  
+  // Define replacement patterns
+  const replacements = [
+    { pattern: /\*\*(.*?)\*\*/g, format: 'bold', placeholder: '§BOLD§' },
+    { pattern: /__(.*?)__/g, format: 'underline', placeholder: '§UNDERLINE§' },
+    { pattern: /~~(.*?)~~/g, format: 'strikethrough', placeholder: '§STRIKE§' },
+    { pattern: /\*(.*?)\*/g, format: 'italic', placeholder: '§ITALIC§' }
+  ];
+
+  // Store formatted segments
+  const formattedSegments: Array<{ text: string; format: string }> = [];
+  
+  // Process each formatting type
+  replacements.forEach(replacement => {
+    processedText = processedText.replace(replacement.pattern, (match, content) => {
+      const segmentIndex = formattedSegments.length;
+      formattedSegments.push({ text: content, format: replacement.format });
+      return `${replacement.placeholder}${segmentIndex}${replacement.placeholder}`;
+    });
+  });
+
+  // Split by placeholder patterns to rebuild segments
+  let currentText = processedText;
+  const allPlaceholders = replacements.map(r => r.placeholder);
+  
+  // Simple approach: just split the text and rebuild segments
+  const parts = currentText.split(/(§(?:BOLD|UNDERLINE|STRIKE|ITALIC)§\d+§(?:BOLD|UNDERLINE|STRIKE|ITALIC)§)/);
+  
+  parts.forEach(part => {
+    if (part.startsWith('§') && part.endsWith('§')) {
+      // This is a formatted segment
+      const matches = part.match(/§(BOLD|UNDERLINE|STRIKE|ITALIC)§(\d+)§/);
+      if (matches) {
+        const segmentIndex = parseInt(matches[2]);
+        const formatType = matches[1].toLowerCase();
+        // Map STRIKE back to strikethrough
+        const actualFormat = formatType === 'strike' ? 'strikethrough' : formatType;
+        const formattedSegment = formattedSegments[segmentIndex];
+        if (formattedSegment) {
+          segments.push({ text: formattedSegment.text, formats: [actualFormat] });
+        }
+      }
+    } else if (part.length > 0) {
+      // This is plain text
+      segments.push({ text: part, formats: [] });
+    }
+  });
+
+  // If no segments were created, return the original text
+  if (segments.length === 0) {
+    segments.push({ text: text, formats: [] });
+  }
+
+  return segments;
+};
+
+// Function to apply text formatting to canvas context
+const applyTextFormatting = (ctx: CanvasRenderingContext2D, formats: string[], fontFamily: string, fontSize: number) => {
+  let fontStyle = '';
+  let fontWeight = '';
+  const textDecorations: string[] = [];
+
+  formats.forEach(format => {
+    switch (format) {
+      case 'bold':
+        fontWeight = 'bold';
+        break;
+      case 'italic':
+        fontStyle = 'italic';
+        break;
+      case 'strikethrough':
+        textDecorations.push('line-through');
+        break;
+      case 'underline':
+        textDecorations.push('underline');
+        break;
+    }
+  });
+
+  // Construct font string
+  const fontString = `${fontStyle} ${fontWeight} ${fontSize}px ${fontFamily}`.trim();
+  ctx.font = fontString;
+
+  return { textDecorations };
+};
+
+// Function to draw formatted text on canvas
+const drawFormattedText = (
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  fontSize: number,
+  fontFamily: string,
+  color: string,
+  textAlign: 'left' | 'center' | 'right'
+) => {
+  const segments = parseMarkdownText(text);
+  
+  // Calculate total width for alignment
+  let totalWidth = 0;
+  segments.forEach(segment => {
+    applyTextFormatting(ctx, segment.formats, fontFamily, fontSize);
+    totalWidth += ctx.measureText(segment.text).width;
+  });
+
+  // Calculate starting X position based on alignment
+  let startX = x;
+  if (textAlign === 'center') {
+    startX = x - totalWidth / 2;
+  } else if (textAlign === 'right') {
+    startX = x - totalWidth;
+  }
+
+  // Draw each segment
+  let currentX = startX;
+  segments.forEach(segment => {
+    const { textDecorations } = applyTextFormatting(ctx, segment.formats, fontFamily, fontSize);
+    
+    ctx.fillStyle = color;
+    ctx.textBaseline = 'top';
+    ctx.fillText(segment.text, currentX, y);
+    
+    // Handle text decorations (underline, strikethrough)
+    if (textDecorations.length > 0) {
+      const segmentWidth = ctx.measureText(segment.text).width;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = Math.max(1, fontSize / 20);
+      
+      textDecorations.forEach(decoration => {
+        if (decoration === 'underline') {
+          const underlineY = y + fontSize * 0.9;
+          ctx.beginPath();
+          ctx.moveTo(currentX, underlineY);
+          ctx.lineTo(currentX + segmentWidth, underlineY);
+          ctx.stroke();
+        } else if (decoration === 'line-through') {
+          const strikeY = y + fontSize * 0.5;
+          ctx.beginPath();
+          ctx.moveTo(currentX, strikeY);
+          ctx.lineTo(currentX + segmentWidth, strikeY);
+          ctx.stroke();
+        }
+      });
+    }
+    
+    currentX += ctx.measureText(segment.text).width;
+  });
+};
