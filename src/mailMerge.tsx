@@ -81,6 +81,7 @@ const MailMerge: React.FC = () => {
   const [showFieldDefinition, setShowFieldDefinition] = useState(false);
   const [showZoomControls, setShowZoomControls] = useState(false);
   const [isImageLoading, setIsImageLoading] = useState(false);
+  const [currentCsvRowIndex, setCurrentCsvRowIndex] = useState(0);
 
   // Refs
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -214,6 +215,7 @@ const MailMerge: React.FC = () => {
         
         setCsvData(filteredData);
         setCsvHeaders(headers);
+        setCurrentCsvRowIndex(0); // Reset to first row
         
         console.log('Filtered CSV data:', filteredData.length, 'rows');
         
@@ -266,6 +268,26 @@ const MailMerge: React.FC = () => {
     checkReadyToGenerate();
   }, [csvHeaders]);
 
+  // Get current CSV row data for preview
+  const getCurrentRowData = useCallback(() => {
+    if (!csvData || !csvData[currentCsvRowIndex]) return null;
+    return csvData[currentCsvRowIndex];
+  }, [csvData, currentCsvRowIndex]);
+
+  // Get display text for a field (demo text or actual CSV data)
+  const getFieldDisplayText = useCallback((field: Field, useActualData: boolean = true) => {
+    if (!useActualData || !csvData) return field.demoText;
+    
+    const rowData = getCurrentRowData();
+    if (!rowData) return field.demoText;
+    
+    const mapping = fieldMappings.find(m => m.fieldName === field.name);
+    if (!mapping?.csvColumn) return field.demoText;
+    
+    const csvValue = rowData[mapping.csvColumn];
+    return csvValue && csvValue.trim() ? csvValue : field.demoText;
+  }, [csvData, currentCsvRowIndex, fieldMappings, getCurrentRowData]);
+
   // Draw fields (matching original functionality)
   const drawFields = useCallback(() => {
     if (!templateImage || !canvasRef.current || !ctxRef.current || !imageRef.current) return;
@@ -281,13 +303,16 @@ const MailMerge: React.FC = () => {
 
     // Draw field markers and demo text
     fields.forEach((field, index) => {
+      // Get the display text (demo text or actual CSV data)
+      const displayText = getFieldDisplayText(field);
+      
       // Draw demo text if available
-      if (field.demoText && field.demoText.trim()) {
+      if (displayText && displayText.trim()) {
         // When demo text is present, only show the demo text, no pointer
         ctx.font = `${field.fontSize}px ${field.fontFamily || 'Arial, sans-serif'}`;
         ctx.fillStyle = field.color;
         ctx.textBaseline = 'top'; // Match the textBaseline used in generation
-        ctx.fillText(field.demoText, field.x, field.y);
+        ctx.fillText(displayText, field.x, field.y);
       } else {
         // When no demo text, show the field pointer and name
         // Draw marker circle
@@ -319,8 +344,8 @@ const MailMerge: React.FC = () => {
       if (index === selectedFieldIndex) {
         ctx.strokeStyle = '#10b981';
         ctx.lineWidth = 2;
-        if (field.demoText && field.demoText.trim()) {
-          const metrics = ctx.measureText(field.demoText);
+        if (displayText && displayText.trim()) {
+          const metrics = ctx.measureText(displayText);
           ctx.strokeRect(
             field.x - 2, 
             field.y - 2, 
@@ -332,7 +357,7 @@ const MailMerge: React.FC = () => {
         }
       }
     });
-  }, [fields, selectedFieldIndex, templateImage]);
+  }, [fields, selectedFieldIndex, templateImage, currentCsvRowIndex, csvData, fieldMappings]);
 
   // Redraw canvas when fields change (only if image is loaded)
   useEffect(() => {
@@ -357,10 +382,11 @@ const MailMerge: React.FC = () => {
 
     for (let i = fields.length - 1; i >= 0; i--) {
       const field = fields[i];
+      const displayText = getFieldDisplayText(field);
       
-      if (field.demoText && field.demoText.trim()) {
+      if (displayText && displayText.trim()) {
         // Check text field
-        const metrics = ctxRef.current.measureText(field.demoText);
+        const metrics = ctxRef.current.measureText(displayText);
         if (x >= field.x && x <= field.x + metrics.width &&
             y >= field.y && y <= field.y + field.fontSize) {
           return { index: i, isResizeHandle: false };
@@ -374,7 +400,7 @@ const MailMerge: React.FC = () => {
       }
     }
     return { index: -1, isResizeHandle: false };
-  }, [fields]);
+  }, [fields, getFieldDisplayText]);
 
   // Handle mouse down
   const handleMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -687,6 +713,31 @@ const MailMerge: React.FC = () => {
   const updateFileNameNumbering = useCallback((includeNumbering: boolean) => {
     setFileNameMapping(prev => ({ ...prev, includeNumbering }));
   }, []);
+
+  // CSV row navigation
+  const goToPreviousRow = useCallback(() => {
+    setCurrentCsvRowIndex(prev => Math.max(0, prev - 1));
+  }, []);
+
+  const goToNextRow = useCallback(() => {
+    setCurrentCsvRowIndex(prev => 
+      csvData ? Math.min(csvData.length - 1, prev + 1) : prev
+    );
+  }, [csvData]);
+
+  const goToRowIndex = useCallback((index: number) => {
+    if (csvData && index >= 0 && index < csvData.length) {
+      setCurrentCsvRowIndex(index);
+    }
+  }, [csvData]);
+
+  // Check if field mappings are complete
+  const getUnmappedFields = useCallback(() => {
+    return fields.filter(field => {
+      const mapping = fieldMappings.find(m => m.fieldName === field.name);
+      return !mapping?.csvColumn;
+    });
+  }, [fields, fieldMappings]);
 
   // Check ready to generate
   const checkReadyToGenerate = useCallback(() => {
@@ -1100,14 +1151,62 @@ const MailMerge: React.FC = () => {
               
               {csvData && (
                 <div className="mt-4 bg-gray-600/50 border border-gray-500 rounded-lg p-3">
-                  <h4 className="text-sm font-semibold text-white mb-2 flex items-center">
-                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                    </svg>
-                    CSV Preview ({csvData.length} rows)
-                  </h4>
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-sm font-semibold text-white flex items-center">
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                      </svg>
+                      CSV Preview ({csvData.length} rows)
+                    </h4>
+                    
+                    {/* CSV Row Navigation */}
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={goToPreviousRow}
+                        disabled={currentCsvRowIndex === 0}
+                        className="p-1 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed text-white"
+                        title="Previous Row"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path>
+                        </svg>
+                      </button>
+                      
+                      <span className="text-xs text-gray-300 min-w-[60px] text-center">
+                        Row {currentCsvRowIndex + 1} of {csvData.length}
+                      </span>
+                      
+                      <button
+                        onClick={goToNextRow}
+                        disabled={currentCsvRowIndex === csvData.length - 1}
+                        className="p-1 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed text-white"
+                        title="Next Row"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Warning for unmapped fields */}
+                  {fields.length > 0 && getUnmappedFields().length > 0 && (
+                    <div className="mb-3 p-2 bg-yellow-500/10 border border-yellow-400/30 rounded text-yellow-300 text-xs">
+                      <div className="flex items-center">
+                        <svg className="w-4 h-4 mr-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.268 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                        </svg>
+                        <span>
+                          <strong>Warning:</strong> {getUnmappedFields().length} field(s) not mapped: {getUnmappedFields().map(f => f.name).join(', ')}. 
+                          Go to Field Mapping section below to map them.
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Current Row Data Display */}
                   <div className="bg-gray-700 rounded overflow-hidden">
-                    <div className="overflow-x-auto max-h-40">
+                    <div className="overflow-x-auto">
                       <table className="w-full text-xs">
                         <thead className="bg-gray-800">
                           <tr>
@@ -1117,23 +1216,24 @@ const MailMerge: React.FC = () => {
                           </tr>
                         </thead>
                         <tbody className="text-gray-200">
-                          {csvData.slice(0, 5).map((row, index) => (
-                            <tr key={index} className="border-b border-gray-600">
-                              {csvHeaders.map(header => (
-                                <td key={header} className="px-2 py-1">{row[header] || ''}</td>
-                              ))}
-                            </tr>
-                          ))}
-                          {csvData.length > 5 && (
-                            <tr>
-                              <td colSpan={csvHeaders.length} className="px-2 py-1 text-center text-gray-400 italic">
-                                ... and {csvData.length - 5} more rows
+                          <tr className="border-b border-gray-600 bg-blue-500/10">
+                            {csvHeaders.map(header => (
+                              <td key={header} className="px-2 py-1 font-medium text-blue-200">
+                                {getCurrentRowData()?.[header] || ''}
                               </td>
-                            </tr>
-                          )}
+                            ))}
+                          </tr>
                         </tbody>
                       </table>
                     </div>
+                  </div>
+
+                  {/* Show preview tip */}
+                  <div className="mt-2 text-xs text-gray-400 flex items-center">
+                    <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    Use ← → buttons to preview different rows. The canvas above shows actual data from the current row.
                   </div>
                 </div>
               )}
