@@ -1149,19 +1149,7 @@ const MailMerge: React.FC = () => {
                         </select>
                       </div>
                       
-                      {/* Text Alignment Control */}
-                      <div className="mb-2">
-                        <label className="block text-emerald-300 text-xs font-medium mb-1">Text Alignment</label>
-                        <select
-                          value={field.textAlign}
-                          onChange={(e) => updateField(index, 'textAlign', e.target.value)}
-                          className="bg-gray-700 text-white px-2 py-1 rounded text-sm w-full"
-                        >
-                          {TEXT_ALIGN_OPTIONS.map(option => (
-                            <option key={option.value} value={option.value}>{option.name}</option>
-                          ))}
-                        </select>
-                      </div>
+                      {/* Text Alignment Controls 1 */}
                       <div>
                         <label className="block text-emerald-300 text-xs font-medium mb-2">Text Color</label>
                         <div className="space-y-2">
@@ -1188,7 +1176,7 @@ const MailMerge: React.FC = () => {
                         </div>
                       </div>
 
-                      {/* Text Alignment Controls */}
+                      {/* Text Alignment Controls 2 */}
                       <div className="mt-3">
                         <label className="block text-emerald-300 text-xs font-medium mb-2">Text Alignment</label>
                         <div className="flex gap-2">
