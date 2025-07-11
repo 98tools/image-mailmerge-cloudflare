@@ -11,7 +11,6 @@
 A powerful, web-based image mail merge tool that allows you to create personalized images by combining templates with CSV data. Built with React and TypeScript, optimized for easy and fast deployment on **Cloudflare Workers**.
 
 ## Screenshots
-<img width="1908" height="903" alt="image" src="https://github.com/user-attachments/assets/7b77c42c-4886-4c59-87fb-22500955e1dd" />
 <img width="1898" height="890" alt="image" src="https://github.com/user-attachments/assets/189129e4-7473-4849-b3c8-539fa9bf5031" />
 <img width="1907" height="900" alt="image" src="https://github.com/user-attachments/assets/810e89e0-8c6b-4af0-8f0a-4231e038beb0" />
 <img width="597" height="64" alt="image" src="https://github.com/user-attachments/assets/62036143-fe2f-47e3-ba47-9a8c94602841" />
