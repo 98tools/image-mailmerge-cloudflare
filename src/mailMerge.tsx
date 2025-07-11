@@ -219,15 +219,14 @@ const MailMerge: React.FC = () => {
         
         console.log('Filtered CSV data:', filteredData.length, 'rows');
         
-        // Initialize field mapping after setting headers
-        const mappings = fields.map(field => ({
-          fieldName: field.name,
-          csvColumn: headers.find(header => 
-            header.toLowerCase().includes(field.name.toLowerCase()) ||
-            field.name.toLowerCase().includes(header.toLowerCase())
-          ) || null
-        }));
-        setFieldMappings(mappings);
+        // Initialize empty field mappings for existing fields
+        if (fields.length > 0) {
+          const mappings = fields.map(field => ({
+            fieldName: field.name,
+            csvColumn: null
+          }));
+          setFieldMappings(mappings);
+        }
       },
       error: (error) => {
         console.error('CSV parse error:', error);
@@ -253,16 +252,11 @@ const MailMerge: React.FC = () => {
 
     setFields(prev => [...prev, field]);
     
-    // Add mapping for new field
+    // Add empty mapping for new field
     setFieldMappings(prev => [...prev, {
       fieldName: fieldName,
       csvColumn: null
     }]);
-    
-    // Try to auto-map the new field if CSV is already loaded
-    if (csvHeaders.length > 0) {
-      autoMapFields();
-    }
     
     drawFields();
     checkReadyToGenerate();
@@ -645,21 +639,37 @@ const MailMerge: React.FC = () => {
 
   // Update field
   const updateField = useCallback((index: number, property: keyof Field, value: string | number) => {
-    setFields(prev => prev.map((field, i) => 
-      i === index ? { ...field, [property]: value } : field
-    ));
+    setFields(prev => prev.map((field, i) => {
+      if (i === index) {
+        const updatedField = { ...field, [property]: value };
+        
+        // If the field name is being changed, update the mapping as well
+        if (property === 'name' && typeof value === 'string') {
+          setFieldMappings(prevMappings => prevMappings.map(mapping => 
+            mapping.fieldName === field.name 
+              ? { ...mapping, fieldName: value }
+              : mapping
+          ));
+        }
+        
+        return updatedField;
+      }
+      return field;
+    }));
   }, []);
 
   // Remove field
   const removeField = useCallback((index: number) => {
+    const fieldToRemove = fields[index];
     setFields(prev => prev.filter((_, i) => i !== index));
-    setFieldMappings(prev => prev.filter((_, i) => i !== index));
+    // Remove mapping by field name, not by index
+    setFieldMappings(prev => prev.filter(mapping => mapping.fieldName !== fieldToRemove.name));
     if (selectedFieldIndex === index) {
       setSelectedFieldIndex(-1);
     } else if (selectedFieldIndex > index) {
       setSelectedFieldIndex(prev => prev - 1);
     }
-  }, [selectedFieldIndex]);
+  }, [selectedFieldIndex, fields]);
 
   // Clear fields
   const clearFields = useCallback(() => {
@@ -667,27 +677,6 @@ const MailMerge: React.FC = () => {
     setSelectedFieldIndex(-1);
     setFieldMappings([]);
   }, []);
-
-  // Auto map fields
-  const autoMapFields = useCallback(() => {
-    if (!csvHeaders.length) return;
-
-    const mappings = fields.map(field => ({
-      fieldName: field.name,
-      csvColumn: csvHeaders.find(header => 
-        header.toLowerCase().includes(field.name.toLowerCase()) ||
-        field.name.toLowerCase().includes(header.toLowerCase())
-      ) || null
-    }));
-    setFieldMappings(mappings);
-  }, [fields, csvHeaders]);
-
-  // Initialize field mapping when CSV is loaded
-  useEffect(() => {
-    if (csvHeaders.length > 0 && fields.length > 0) {
-      autoMapFields();
-    }
-  }, [csvHeaders, fields, autoMapFields]);
 
   // Clear field mapping
   const clearFieldMapping = useCallback(() => {
@@ -1315,18 +1304,12 @@ const MailMerge: React.FC = () => {
                   ))}
                 </div>
                 
-                <div className="flex gap-2">
-                  <button 
-                    onClick={autoMapFields}
-                    className="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-3 rounded-lg transition-colors text-sm"
-                  >
-                    Auto Map
-                  </button>
+                <div className="flex justify-center">
                   <button 
                     onClick={clearFieldMapping}
-                    className="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-3 rounded-lg transition-colors text-sm"
+                    className="bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors text-sm"
                   >
-                    Clear All
+                    Clear All Mappings
                   </button>
                 </div>
               </div>
