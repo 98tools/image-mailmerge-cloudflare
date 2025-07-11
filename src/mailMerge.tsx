@@ -53,6 +53,7 @@ interface FieldMapping {
 
 interface FileNameMapping {
   csvColumn: string | null;
+  includeNumbering: boolean;
 }
 
 const MailMerge: React.FC = () => {
@@ -62,7 +63,7 @@ const MailMerge: React.FC = () => {
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
   const [fields, setFields] = useState<Field[]>([]);
   const [fieldMappings, setFieldMappings] = useState<FieldMapping[]>([]);
-  const [fileNameMapping, setFileNameMapping] = useState<FileNameMapping>({ csvColumn: null });
+  const [fileNameMapping, setFileNameMapping] = useState<FileNameMapping>({ csvColumn: null, includeNumbering: true });
   const [imageUrl, setImageUrl] = useState<string>('');
   const [zoomLevel, setZoomLevel] = useState(1);
   const [canvasOffsetX, setCanvasOffsetX] = useState(0);
@@ -665,7 +666,7 @@ const MailMerge: React.FC = () => {
   // Clear field mapping
   const clearFieldMapping = useCallback(() => {
     setFieldMappings(fields.map(field => ({ fieldName: field.name, csvColumn: null })));
-    setFileNameMapping({ csvColumn: null });
+    setFileNameMapping({ csvColumn: null, includeNumbering: true });
   }, [fields]);
 
   // Update field mapping
@@ -679,7 +680,12 @@ const MailMerge: React.FC = () => {
 
   // Update file name mapping
   const updateFileNameMapping = useCallback((csvColumn: string) => {
-    setFileNameMapping({ csvColumn: csvColumn || null });
+    setFileNameMapping(prev => ({ ...prev, csvColumn: csvColumn || null }));
+  }, []);
+
+  // Update file name numbering preference
+  const updateFileNameNumbering = useCallback((includeNumbering: boolean) => {
+    setFileNameMapping(prev => ({ ...prev, includeNumbering }));
   }, []);
 
   // Check ready to generate
@@ -756,8 +762,12 @@ const MailMerge: React.FC = () => {
             if (!sanitizedName.toLowerCase().endsWith('.png')) {
               sanitizedName += '.png';
             }
-            // Ensure uniqueness by adding row number if filename would be duplicate
-            fileName = `${String(i + 1).padStart(4, '0')}_${sanitizedName}`;
+            // Include numbering prefix only if user wants it
+            if (fileNameMapping.includeNumbering) {
+              fileName = `${String(i + 1).padStart(4, '0')}_${sanitizedName}`;
+            } else {
+              fileName = sanitizedName;
+            }
           }
         }
         
@@ -1152,7 +1162,7 @@ const MailMerge: React.FC = () => {
                       </svg>
                       <span className="text-sm font-medium text-indigo-300">Custom File Names</span>
                     </div>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-2 mb-3">
                       <span className="text-sm text-gray-300 min-w-[80px]">file_name:</span>
                       <select
                         value={fileNameMapping.csvColumn || ''}
@@ -1165,8 +1175,25 @@ const MailMerge: React.FC = () => {
                         ))}
                       </select>
                     </div>
+                    {fileNameMapping.csvColumn && (
+                      <div className="flex items-center space-x-2 mb-2">
+                        <input
+                          type="checkbox"
+                          id="includeNumbering"
+                          checked={fileNameMapping.includeNumbering}
+                          onChange={(e) => updateFileNameNumbering(e.target.checked)}
+                          className="w-4 h-4 text-indigo-600 bg-gray-700 border-gray-600 rounded focus:ring-indigo-500 focus:ring-2"
+                        />
+                        <label htmlFor="includeNumbering" className="text-sm text-gray-300">
+                          Include numbering prefix (0001_filename.png)
+                        </label>
+                      </div>
+                    )}
                     <p className="text-xs text-indigo-400 mt-2">
                       Optional: Select a CSV column to use custom file names. Files will be automatically saved as .png
+                      {fileNameMapping.csvColumn && !fileNameMapping.includeNumbering && (
+                        <span className="block mt-1 text-yellow-400">⚠️ Without numbering, duplicate filenames will overwrite each other</span>
+                      )}
                     </p>
                   </div>
 
