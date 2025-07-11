@@ -480,13 +480,16 @@ const MailMerge: React.FC = () => {
 
   // Handle wheel for field resizing
   const handleWheel = useCallback((e: React.WheelEvent<HTMLCanvasElement>) => {
+    // Always prevent default scrolling behavior
+    e.preventDefault();
+    
     if (!canvasRef.current) return;
     
     const coords = getCanvasCoordinates(e);
     const hit = getFieldAtPosition(coords.x, coords.y);
     
     if (hit.index >= 0) {
-      e.preventDefault();
+      // Only resize if hovering over a field
       const field = fields[hit.index];
       const delta = e.deltaY > 0 ? -2 : 2;
       const newFontSize = Math.max(8, Math.min(72, field.fontSize + delta));
@@ -495,6 +498,7 @@ const MailMerge: React.FC = () => {
         i === hit.index ? { ...f, fontSize: newFontSize } : f
       ));
     }
+    // If not hovering over a field, do nothing (no scrolling)
   }, [fields, getCanvasCoordinates, getFieldAtPosition]);
 
   // Global mouse events for panning
@@ -1184,7 +1188,17 @@ const MailMerge: React.FC = () => {
               {templateImage ? (
                 <div 
                   ref={canvasContainerRef}
-                  className="h-full w-full overflow-auto bg-gray-800/50 rounded-lg"
+                  className="h-full w-full bg-gray-800/50 rounded-lg canvas-container"
+                  style={{ 
+                    scrollbarWidth: 'none', 
+                    msOverflowStyle: 'none',
+                    overflow: 'hidden'
+                  }}
+                  onWheel={(e) => {
+                    // Prevent container scrolling when wheel is used on canvas
+                    // Only allow wheel events to reach the canvas for field resizing
+                    e.preventDefault();
+                  }}
                 >
                   <div className="flex items-center justify-center min-h-full p-4">
                     <div 

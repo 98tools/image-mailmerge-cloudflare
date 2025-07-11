@@ -18,6 +18,15 @@ canvas {
   image-rendering: crisp-edges;
 }
 
+/* Disable scrolling in canvas container */
+.canvas-container {
+  overflow: hidden !important;
+}
+
+.canvas-container::-webkit-scrollbar {
+  display: none;
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
