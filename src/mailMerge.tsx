@@ -838,6 +838,23 @@ const MailMerge: React.FC = () => {
             <span className="text-sm text-gray-400">for image</span>
           </div>
           <div className="flex items-center space-x-4">
+            {/* Progress Bar in Header */}
+            {isProcessing && (
+              <div className="flex items-center space-x-3 bg-gray-700/50 rounded-lg px-4 py-2">
+                <div className="flex items-center space-x-2">
+                  <div className="w-32 bg-gray-600 rounded-full h-2 overflow-hidden">
+                    <div 
+                      className="bg-gradient-to-r from-purple-500 to-pink-500 h-full transition-all duration-300"
+                      style={{ width: `${progress}%` }}
+                    ></div>
+                  </div>
+                  <span className="text-sm text-gray-300 whitespace-nowrap min-w-[120px]">
+                    {progressText || `${Math.round(progress)}%`}
+                  </span>
+                </div>
+              </div>
+            )}
+            
             <button 
               onClick={generateImages}
               disabled={!isReadyToGenerate || isProcessing}
@@ -1118,22 +1135,6 @@ const MailMerge: React.FC = () => {
                     Clear All
                   </button>
                 </div>
-              </div>
-            )}
-
-            {/* Progress Section */}
-            {isProcessing && (
-              <div className="bg-gray-700/50 rounded-lg p-4">
-                <h3 className="text-lg font-semibold text-white mb-4">Processing</h3>
-                <div className="bg-gray-600 rounded-full h-3 overflow-hidden mb-3">
-                  <div 
-                    className="bg-gradient-to-r from-purple-500 to-pink-500 h-full transition-all duration-300"
-                    style={{ width: `${progress}%` }}
-                  ></div>
-                </div>
-                <p className="text-center text-gray-300 text-sm">
-                  {progressText || `Processing... ${Math.round(progress)}%`}
-                </p>
               </div>
             )}
           </div>
