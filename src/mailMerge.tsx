@@ -51,6 +51,10 @@ interface FieldMapping {
   csvColumn: string | null;
 }
 
+interface FileNameMapping {
+  csvColumn: string | null;
+}
+
 const MailMerge: React.FC = () => {
   // State
   const [templateImage, setTemplateImage] = useState<File | null>(null);
@@ -58,6 +62,7 @@ const MailMerge: React.FC = () => {
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
   const [fields, setFields] = useState<Field[]>([]);
   const [fieldMappings, setFieldMappings] = useState<FieldMapping[]>([]);
+  const [fileNameMapping, setFileNameMapping] = useState<FileNameMapping>({ csvColumn: null });
   const [imageUrl, setImageUrl] = useState<string>('');
   const [zoomLevel, setZoomLevel] = useState(1);
   const [canvasOffsetX, setCanvasOffsetX] = useState(0);
@@ -660,6 +665,7 @@ const MailMerge: React.FC = () => {
   // Clear field mapping
   const clearFieldMapping = useCallback(() => {
     setFieldMappings(fields.map(field => ({ fieldName: field.name, csvColumn: null })));
+    setFileNameMapping({ csvColumn: null });
   }, [fields]);
 
   // Update field mapping
@@ -669,6 +675,11 @@ const MailMerge: React.FC = () => {
         ? { ...mapping, csvColumn } 
         : mapping
     ));
+  }, []);
+
+  // Update file name mapping
+  const updateFileNameMapping = useCallback((csvColumn: string) => {
+    setFileNameMapping({ csvColumn: csvColumn || null });
   }, []);
 
   // Check ready to generate
@@ -733,7 +744,21 @@ const MailMerge: React.FC = () => {
         const blob = await new Promise<Blob>((resolve) =>
           canvas.toBlob((blob) => resolve(blob!), 'image/png')
         );
-        zip.file(`image_${String(i + 1).padStart(4, '0')}.png`, blob);
+        
+        // Generate filename - use CSV data if mapped, otherwise default naming
+        let fileName = `image_${String(i + 1).padStart(4, '0')}.png`;
+        if (fileNameMapping.csvColumn && row[fileNameMapping.csvColumn]) {
+          const customName = row[fileNameMapping.csvColumn].trim();
+          if (customName) {
+            // Sanitize filename and ensure .png extension
+            fileName = customName.replace(/[<>:"/\\|?*]/g, '_');
+            if (!fileName.toLowerCase().endsWith('.png')) {
+              fileName += '.png';
+            }
+          }
+        }
+        
+        zip.file(fileName, blob);
 
         // Allow UI to update
         await new Promise(resolve => setTimeout(resolve, 10));
@@ -1108,6 +1133,33 @@ const MailMerge: React.FC = () => {
                 </div>
                 
                 <div className="space-y-3 mb-4">
+                  {/* File Name Mapping */}
+                  <div className="bg-indigo-500/10 border border-indigo-400/30 rounded-lg p-3 mb-3">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <svg className="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                      </svg>
+                      <span className="text-sm font-medium text-indigo-300">Custom File Names</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm text-gray-300 min-w-[80px]">file_name:</span>
+                      <select
+                        value={fileNameMapping.csvColumn || ''}
+                        onChange={(e) => updateFileNameMapping(e.target.value)}
+                        className="bg-gray-700 text-white px-2 py-1 rounded text-sm flex-1"
+                      >
+                        <option value="">-- Use Default (image_0001.png) --</option>
+                        {csvHeaders.map(header => (
+                          <option key={header} value={header}>{header}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <p className="text-xs text-indigo-400 mt-2">
+                      Optional: Select a CSV column to use custom file names. Files will be automatically saved as .png
+                    </p>
+                  </div>
+
+                  {/* Field Mappings */}
                   {fieldMappings.map((mapping, index) => (
                     <div key={index} className="flex items-center space-x-2">
                       <span className="text-sm text-gray-300 min-w-[80px]">{mapping.fieldName}:</span>
