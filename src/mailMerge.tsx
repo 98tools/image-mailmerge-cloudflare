@@ -860,14 +860,26 @@ const MailMerge: React.FC = () => {
     const container = canvasContainerRef.current;
     if (!container) return;
     
-    const containerWidth = container.clientWidth - 32; // Account for padding
-    const containerHeight = container.clientHeight - 32;
+    // Get the actual available space for the image
+    const containerRect = container.getBoundingClientRect();
+    const availableWidth = containerRect.width - 128; // Account for padding (64px on each side)
+    const availableHeight = containerRect.height - 128; // Account for padding (64px on each side)
     
-    const scaleX = containerWidth / originalImageWidthRef.current;
-    const scaleY = containerHeight / originalImageHeightRef.current;
+    // Calculate scale factors for both dimensions
+    const scaleX = availableWidth / originalImageWidthRef.current;
+    const scaleY = availableHeight / originalImageHeightRef.current;
+    
+    // Use the smaller scale to ensure the image fits completely
     const scale = Math.min(scaleX, scaleY, 1); // Don't zoom in beyond 100%
     
-    console.log('Zoom to fit:', { containerWidth, containerHeight, scaleX, scaleY, scale });
+    console.log('Zoom to fit:', { 
+      containerSize: { width: containerRect.width, height: containerRect.height },
+      availableSpace: { width: availableWidth, height: availableHeight },
+      imageSize: { width: originalImageWidthRef.current, height: originalImageHeightRef.current },
+      scales: { scaleX, scaleY },
+      finalScale: scale 
+    });
+    
     setZoomLevel(scale);
   }, []);
   const zoomToActual = useCallback(() => setZoomLevel(1), []);
@@ -1333,6 +1345,16 @@ const MailMerge: React.FC = () => {
             <div className="bg-gray-800 border-b border-gray-700 px-6 py-3">
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-gray-200">Preview</h2>
+                <span className="text-xs text-gray-400 ml-4 flex items-center">
+                  {/* Mouse Middle Button SVG */}
+                  Hold
+                  <svg className="w-4 h-4 ml-1" viewBox="0 0 24 24" fill="none">
+                    <rect x="5" y="3" width="14" height="18" rx="4" fill="#374151" stroke="#9CA3AF" strokeWidth="1.5"/>
+                    <rect x="11" y="5" width="2" height="4" rx="1" fill="#9CA3AF"/>
+                  </svg>
+                  <span className="mx-1 px-1 bg-gray-700 rounded">mouse middle button</span>
+                  and drag to pan
+                </span>
                 {showZoomControls && (
                   <div className="flex items-center space-x-3">
                     <button onClick={zoomOut} title="Zoom Out (Ctrl+-)" className="bg-gray-700 hover:bg-gray-600 text-white p-2 rounded-lg transition-colors">
@@ -1364,11 +1386,10 @@ const MailMerge: React.FC = () => {
               {templateImage ? (
                 <div 
                   ref={canvasContainerRef}
-                  className="h-full w-full bg-gray-800/50 rounded-lg canvas-container"
+                  className="h-full w-full bg-gray-800/50 rounded-lg canvas-container overflow-auto"
                   style={{ 
                     scrollbarWidth: 'none', 
-                    msOverflowStyle: 'none',
-                    overflow: 'hidden'
+                    msOverflowStyle: 'none'
                   }}
                   onWheel={(e) => {
                     // Prevent container scrolling when wheel is used on canvas
@@ -1376,11 +1397,11 @@ const MailMerge: React.FC = () => {
                     e.preventDefault();
                   }}
                 >
-                  <div className="flex items-center justify-center min-h-full p-4">
+                  <div className="flex items-center justify-center min-h-full min-w-full p-8">
                     <div 
                       style={{
                         transform: `scale(${zoomLevel})`,
-                        transformOrigin: 'top left'
+                        transformOrigin: 'center center'
                       }}
                     >
                       <canvas
@@ -1389,7 +1410,7 @@ const MailMerge: React.FC = () => {
                         onMouseMove={handleMouseMove}
                         onMouseUp={handleMouseUp}
                         onWheel={handleWheel}
-                        className="cursor-crosshair rounded-lg shadow-lg"
+                        className="cursor-crosshair rounded-lg shadow-lg max-w-none"
                       />
                     </div>
                   </div>
