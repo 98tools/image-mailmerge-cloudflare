@@ -1,8 +1,10 @@
-import { cloudflare } from '@cloudflare/vite-plugin'
 import { defineConfig } from 'vite'
-import ssrPlugin from 'vite-ssr-components/plugin'
-import tailwindcss from '@tailwindcss/vite'
+import react from '@vitejs/plugin-react'
 
 export default defineConfig({
-  plugins: [cloudflare(), ssrPlugin(), tailwindcss()]
+  plugins: [react()],
+  server: {
+    port: 3005,
+    open: true
+  }
 })
