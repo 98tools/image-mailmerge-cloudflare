@@ -70,6 +70,8 @@ const MailMerge: React.FC = () => {
   const [isResizingSidebar, setIsResizingSidebar] = useState(false);
   const [progress, setProgress] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [progressText, setProgressText] = useState('');
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [showFieldDefinition, setShowFieldDefinition] = useState(false);
   const [showZoomControls, setShowZoomControls] = useState(false);
   const [isImageLoading, setIsImageLoading] = useState(false);
@@ -676,63 +678,84 @@ const MailMerge: React.FC = () => {
 
     setIsProcessing(true);
     setProgress(0);
+    setProgressText('Starting image generation...');
+    setShowSuccessMessage(false);
 
-    const zip = new JSZip();
-    const totalRows = csvData.length;
+    try {
+      const zip = new JSZip();
+      const totalRows = csvData.length;
 
-    for (let i = 0; i < totalRows; i++) {
-      const row = csvData[i];
-      
-      // Create canvas for this row
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d')!;
-      
-      // Load and draw template image
-      const img = new Image();
-      await new Promise<void>((resolve) => {
-        img.onload = () => {
-          canvas.width = img.width;
-          canvas.height = img.height;
-          ctx.drawImage(img, 0, 0);
-          resolve();
-        };
-        img.src = imageUrl;
-      });
-
-      // Draw fields with CSV data
-      fields.forEach(field => {
-        const mapping = fieldMappings.find(m => m.fieldName === field.name);
-        const text = mapping?.csvColumn ? row[mapping.csvColumn] || '' : field.demoText || '';
+      for (let i = 0; i < totalRows; i++) {
+        const row = csvData[i];
         
-        if (text) {
-          ctx.font = `${field.fontSize}px ${field.fontFamily}`;
-          ctx.fillStyle = field.color;
-          ctx.textBaseline = 'top';
-          ctx.fillText(text, field.x, field.y);
-        }
-      });
+        // Update progress text to match old format
+        const percent = ((i + 1) / totalRows) * 100;
+        setProgress(percent);
+        setProgressText(`Processing image ${i + 1} of ${totalRows} (${Math.round(percent)}%)`);
+        
+        // Create canvas for this row
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d')!;
+        
+        // Load and draw template image
+        const img = new Image();
+        await new Promise<void>((resolve) => {
+          img.onload = () => {
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
+            resolve();
+          };
+          img.src = imageUrl;
+        });
 
-      // Add to zip
-      canvas.toBlob((blob) => {
-        if (blob) {
-          zip.file(`image_${i + 1}.png`, blob);
-        }
-      }, 'image/png');
+        // Draw fields with CSV data
+        fields.forEach(field => {
+          const mapping = fieldMappings.find(m => m.fieldName === field.name);
+          const text = mapping?.csvColumn ? row[mapping.csvColumn] || '' : field.demoText || '';
+          
+          if (text) {
+            ctx.font = `${field.fontSize}px ${field.fontFamily}`;
+            ctx.fillStyle = field.color;
+            ctx.textBaseline = 'top';
+            ctx.fillText(text, field.x, field.y);
+          }
+        });
 
-      setProgress(((i + 1) / totalRows) * 100);
+        // Convert to blob and add to zip
+        const blob = await new Promise<Blob>((resolve) =>
+          canvas.toBlob((blob) => resolve(blob!), 'image/png')
+        );
+        zip.file(`image_${String(i + 1).padStart(4, '0')}.png`, blob);
+
+        // Allow UI to update
+        await new Promise(resolve => setTimeout(resolve, 10));
+      }
+
+      // Generate ZIP file
+      setProgressText('Generating ZIP file...');
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      
+      // Download zip
+      const url = URL.createObjectURL(zipBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `mailmerge_images_${new Date().toISOString().slice(0,10)}.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      // Show success message
+      setShowSuccessMessage(true);
+      setTimeout(() => setShowSuccessMessage(false), 5000);
+
+    } catch (error) {
+      console.error('Error generating images:', error);
+      alert(`Error generating images: ${(error as Error).message}`);
+    } finally {
+      setIsProcessing(false);
+      setProgress(0);
+      setProgressText('');
     }
-
-    // Download zip
-    const zipBlob = await zip.generateAsync({ type: 'blob' });
-    const url = URL.createObjectURL(zipBlob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'mailmerge_images.zip';
-    a.click();
-    URL.revokeObjectURL(url);
-
-    setIsProcessing(false);
-    setProgress(0);
   }, [templateImage, csvData, fields, fieldMappings, imageUrl]);
 
   // Zoom controls
@@ -790,6 +813,18 @@ const MailMerge: React.FC = () => {
 
   return (
     <div className="h-screen bg-gray-900 text-white overflow-hidden">
+      {/* Success Notification */}
+      {showSuccessMessage && (
+        <div className="fixed top-4 right-4 bg-green-500 text-white px-6 py-4 rounded-lg shadow-lg z-50 animate-slide-in-right">
+          <div className="flex items-center">
+            <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+            Successfully generated {csvData?.length || 0} images!
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="bg-gray-800 border-b border-gray-700 px-6 py-4">
         <div className="flex items-center justify-between">
@@ -1087,14 +1122,14 @@ const MailMerge: React.FC = () => {
             {isProcessing && (
               <div className="bg-gray-700/50 rounded-lg p-4">
                 <h3 className="text-lg font-semibold text-white mb-4">Processing</h3>
-                <div className="bg-gray-600 rounded-full h-3 overflow-hidden">
+                <div className="bg-gray-600 rounded-full h-3 overflow-hidden mb-3">
                   <div 
                     className="bg-gradient-to-r from-purple-500 to-pink-500 h-full transition-all duration-300"
                     style={{ width: `${progress}%` }}
                   ></div>
                 </div>
-                <p className="text-center text-gray-300 mt-2 text-sm">
-                  Processing... {Math.round(progress)}%
+                <p className="text-center text-gray-300 text-sm">
+                  {progressText || `Processing... ${Math.round(progress)}%`}
                 </p>
               </div>
             )}
