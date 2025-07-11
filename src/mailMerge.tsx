@@ -702,6 +702,7 @@ const MailMerge: React.FC = () => {
     try {
       const zip = new JSZip();
       const totalRows = csvData.length;
+      console.log(`Starting generation of ${totalRows} images`);
 
       for (let i = 0; i < totalRows; i++) {
         const row = csvData[i];
@@ -751,22 +752,32 @@ const MailMerge: React.FC = () => {
           const customName = row[fileNameMapping.csvColumn].trim();
           if (customName) {
             // Sanitize filename and ensure .png extension
-            fileName = customName.replace(/[<>:"/\\|?*]/g, '_');
-            if (!fileName.toLowerCase().endsWith('.png')) {
-              fileName += '.png';
+            let sanitizedName = customName.replace(/[<>:"/\\|?*]/g, '_');
+            if (!sanitizedName.toLowerCase().endsWith('.png')) {
+              sanitizedName += '.png';
             }
+            // Ensure uniqueness by adding row number if filename would be duplicate
+            fileName = `${String(i + 1).padStart(4, '0')}_${sanitizedName}`;
           }
         }
         
-        zip.file(fileName, blob);
+        // Add to zip with proper error handling
+        try {
+          zip.file(fileName, blob);
+          console.log(`✓ Added file ${i + 1}/${totalRows}: ${fileName}, blob size: ${blob.size}`);
+        } catch (error) {
+          console.error(`Failed to add file ${fileName}:`, error);
+        }
 
-        // Allow UI to update
-        await new Promise(resolve => setTimeout(resolve, 10));
+        // Allow UI to update and ensure blob is processed
+        await new Promise(resolve => setTimeout(resolve, 50));
       }
 
       // Generate ZIP file
       setProgressText('Generating ZIP file...');
+      console.log(`Generating ZIP with ${Object.keys(zip.files).length} files`);
       const zipBlob = await zip.generateAsync({ type: 'blob' });
+      console.log(`ZIP generated, size: ${zipBlob.size} bytes`);
       
       // Download zip
       const url = URL.createObjectURL(zipBlob);
@@ -788,7 +799,7 @@ const MailMerge: React.FC = () => {
       setProgress(0);
       setProgressText('');
     }
-  }, [templateImage, csvData, fields, fieldMappings, imageUrl]);
+  }, [templateImage, csvData, fields, fieldMappings, fileNameMapping, imageUrl]);
 
   // Zoom controls
   const zoomIn = useCallback(() => setZoomLevel(prev => Math.min(prev * 1.2, 5)), []);
