@@ -280,6 +280,7 @@ const MailMerge: React.FC = () => {
         // When demo text is present, only show the demo text, no pointer
         ctx.font = `${field.fontSize}px ${field.fontFamily || 'Arial, sans-serif'}`;
         ctx.fillStyle = field.color;
+        ctx.textBaseline = 'top'; // Match the textBaseline used in generation
         ctx.fillText(field.demoText, field.x, field.y);
       } else {
         // When no demo text, show the field pointer and name
@@ -298,11 +299,13 @@ const MailMerge: React.FC = () => {
         // Draw field number
         ctx.fillStyle = '#1f2937';
         ctx.font = 'bold 12px Arial';
+        ctx.textBaseline = 'middle'; // Use middle for UI text
         ctx.fillText(`${index + 1}`, field.x + 12, field.y - 8);
         
         // Draw field name
         ctx.fillStyle = '#1f2937';
         ctx.font = '12px Arial';
+        ctx.textBaseline = 'middle'; // Use middle for UI text
         ctx.fillText(field.name, field.x + 12, field.y + 6);
       }
 
