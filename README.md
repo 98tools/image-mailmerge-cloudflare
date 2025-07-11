@@ -103,7 +103,10 @@ Deploy directly to Cloudflare Workers with one click:
 
 ## 🚀 Deployment
 
-### Deploy to Cloudflare Workers
+### Method 1: Deploy to Cloudflare Workers with one click
+[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/abdulkarim1422/image-mailmerge-cloudflare)
+
+### Method 2: Deploy to Cloudflare Workers manually
 
 1. **Install Wrangler CLI**
    ```bash
