@@ -1345,6 +1345,7 @@ const MailMerge: React.FC = () => {
             <div className="bg-gray-800 border-b border-gray-700 px-6 py-3">
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-gray-200">Preview</h2>
+                {showZoomControls && ( <>
                 <span className="text-xs text-gray-400 ml-4 flex items-center">
                   {/* Mouse Middle Button SVG */}
                   Hold
@@ -1355,7 +1356,6 @@ const MailMerge: React.FC = () => {
                   <span className="mx-1 px-1 bg-gray-700 rounded">mouse middle button</span>
                   and drag to pan
                 </span>
-                {showZoomControls && (
                   <div className="flex items-center space-x-3">
                     <button onClick={zoomOut} title="Zoom Out (Ctrl+-)" className="bg-gray-700 hover:bg-gray-600 text-white p-2 rounded-lg transition-colors">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1377,7 +1377,7 @@ const MailMerge: React.FC = () => {
                       1:1
                     </button>
                   </div>
-                )}
+                </>)}
               </div>
             </div>
             
