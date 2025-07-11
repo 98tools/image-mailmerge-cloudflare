@@ -1253,16 +1253,18 @@ const MailMerge: React.FC = () => {
                     </div>
                     <div className="flex items-center space-x-2 mb-3">
                       <span className="text-sm text-gray-300 min-w-[80px]">file_name:</span>
-                      <select
-                        value={fileNameMapping.csvColumn || ''}
-                        onChange={(e) => updateFileNameMapping(e.target.value)}
-                        className="bg-gray-700 text-white px-2 py-1 rounded text-sm flex-1"
-                      >
-                        <option value="">-- Use Default (image_0001.png) --</option>
-                        {csvHeaders.map(header => (
-                          <option key={header} value={header}>{header}</option>
-                        ))}
-                      </select>
+                      <div className="flex-1 min-w-0">
+                        <select
+                          value={fileNameMapping.csvColumn || ''}
+                          onChange={(e) => updateFileNameMapping(e.target.value)}
+                          className="bg-gray-700 text-white px-2 py-1 rounded text-sm w-full"
+                        >
+                          <option value="">-- Use Default (image_0001.png) --</option>
+                          {csvHeaders.map(header => (
+                            <option key={header} value={header}>{header}</option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
                     {fileNameMapping.csvColumn && (
                       <div className="flex items-center space-x-2 mb-2">
