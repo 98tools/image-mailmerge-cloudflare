@@ -663,13 +663,14 @@ const MailMerge: React.FC = () => {
   }, [isPanning]);
 
   // Handle wheel for field resizing (updated to handle both text and QR code fields)
-  const handleWheel = useCallback((e: React.WheelEvent<HTMLCanvasElement>) => {
+  const handleWheelNative = useCallback((e: WheelEvent) => {
     // Always prevent default scrolling behavior
     e.preventDefault();
     
     if (!canvasRef.current) return;
     
-    const coords = getCanvasCoordinates(e);
+    // Convert native event to React-like coordinates
+    const coords = getCanvasCoordinates(e as any);
     const hit = getFieldAtPosition(coords.x, coords.y);
     
     if (hit.index >= 0) {
@@ -691,6 +692,28 @@ const MailMerge: React.FC = () => {
     }
     // If not hovering over a field, do nothing (no scrolling)
   }, [fields, getCanvasCoordinates, getFieldAtPosition]);
+
+  // Bind native wheel events to prevent passive event listener issues
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const container = canvasContainerRef.current;
+    
+    if (!canvas || !container) return;
+    
+    // Container wheel handler to prevent scrolling
+    const containerWheelHandler = (e: WheelEvent) => {
+      e.preventDefault();
+    };
+    
+    // Add wheel event listeners with { passive: false } to allow preventDefault
+    canvas.addEventListener('wheel', handleWheelNative, { passive: false });
+    container.addEventListener('wheel', containerWheelHandler, { passive: false });
+    
+    return () => {
+      canvas.removeEventListener('wheel', handleWheelNative);
+      container.removeEventListener('wheel', containerWheelHandler);
+    };
+  }, [handleWheelNative, templateImage]);
 
   // Global mouse events for panning
   useEffect(() => {
@@ -1657,11 +1680,6 @@ const MailMerge: React.FC = () => {
                     scrollbarWidth: 'none', 
                     msOverflowStyle: 'none'
                   }}
-                  onWheel={(e) => {
-                    // Prevent container scrolling when wheel is used on canvas
-                    // Only allow wheel events to reach the canvas for field resizing
-                    e.preventDefault();
-                  }}
                 >
                   <div className="flex items-center justify-center min-h-full min-w-full p-8">
                     <div 
@@ -1675,7 +1693,6 @@ const MailMerge: React.FC = () => {
                         onMouseDown={handleMouseDown}
                         onMouseMove={handleMouseMove}
                         onMouseUp={handleMouseUp}
-                        onWheel={handleWheel}
                         className="cursor-crosshair rounded-lg shadow-lg max-w-none"
                       />
                     </div>
