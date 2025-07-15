@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Papa from 'papaparse';
 import JSZip from 'jszip';
+import { QRCodeFieldData, QRCodeFieldEditor, drawQRCodeOnCanvas } from './components/QRCodeField';
 
 // Color and font presets (from Tailwind CSS)
 const COLOR_PRESETS = [
@@ -39,7 +40,9 @@ const TEXT_ALIGN_OPTIONS = [
   { name: 'Right', value: 'right' as const }
 ];
 
-interface Field {
+// Field type definitions
+interface TextField {
+  type: 'text';
   name: string;
   x: number;
   y: number;
@@ -49,6 +52,8 @@ interface Field {
   demoText: string;
   textAlign: 'left' | 'center' | 'right';
 }
+
+type Field = TextField | QRCodeFieldData;
 
 interface CSVRow {
   [key: string]: string;
@@ -90,6 +95,8 @@ const MailMerge: React.FC = () => {
   const [showZoomControls, setShowZoomControls] = useState(false);
   const [isImageLoading, setIsImageLoading] = useState(false);
   const [currentCsvRowIndex, setCurrentCsvRowIndex] = useState(0);
+  const [showFieldTypeModal, setShowFieldTypeModal] = useState(false);
+  const [pendingFieldPosition, setPendingFieldPosition] = useState<{x: number, y: number} | null>(null);
 
   // Refs
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -243,13 +250,17 @@ const MailMerge: React.FC = () => {
     });
   }, [fields]);
 
-  // Add field at position (matching original functionality)
+  // Add field at position - now shows modal for field type selection
   const addFieldAtPosition = useCallback((x: number, y: number) => {
-    const fieldName = prompt('Enter field name:');
-    if (!fieldName) return;
+    setPendingFieldPosition({ x, y });
+    setShowFieldTypeModal(true);
+  }, []);
 
-    const field: Field = {
-      name: fieldName,
+  // Create text field
+  const createTextField = useCallback((name: string, x: number, y: number) => {
+    const field: TextField = {
+      type: 'text',
+      name: name,
       x: x,
       y: y,
       fontSize: 24,
@@ -263,13 +274,59 @@ const MailMerge: React.FC = () => {
     
     // Add empty mapping for new field
     setFieldMappings(prev => [...prev, {
-      fieldName: fieldName,
+      fieldName: name,
       csvColumn: null
     }]);
     
     drawFields();
     checkReadyToGenerate();
-  }, [csvHeaders]);
+  }, []);
+
+  // Create QR code field
+  const createQRField = useCallback((name: string, x: number, y: number) => {
+    const field: QRCodeFieldData = {
+      type: 'qrcode',
+      name: name,
+      x: x,
+      y: y,
+      size: 50,
+      color: '#000000',
+      backgroundColor: null,
+      demoText: ''
+    };
+
+    setFields(prev => [...prev, field]);
+    
+    // Add empty mapping for new field
+    setFieldMappings(prev => [...prev, {
+      fieldName: name,
+      csvColumn: null
+    }]);
+    
+    drawFields();
+    checkReadyToGenerate();
+  }, []);
+
+  // Handle field type selection
+  const handleFieldTypeSelection = useCallback((fieldType: 'text' | 'qrcode') => {
+    if (!pendingFieldPosition) return;
+    
+    const fieldName = prompt('Enter field name:');
+    if (!fieldName) {
+      setShowFieldTypeModal(false);
+      setPendingFieldPosition(null);
+      return;
+    }
+
+    if (fieldType === 'text') {
+      createTextField(fieldName, pendingFieldPosition.x, pendingFieldPosition.y);
+    } else {
+      createQRField(fieldName, pendingFieldPosition.x, pendingFieldPosition.y);
+    }
+
+    setShowFieldTypeModal(false);
+    setPendingFieldPosition(null);
+  }, [pendingFieldPosition, createTextField, createQRField]);
 
   // Get current CSV row data for preview
   const getCurrentRowData = useCallback(() => {
@@ -291,8 +348,8 @@ const MailMerge: React.FC = () => {
     return csvValue && csvValue.trim() ? csvValue : field.demoText;
   }, [csvData, currentCsvRowIndex, fieldMappings, getCurrentRowData]);
 
-  // Draw fields (matching original functionality)
-  const drawFields = useCallback(() => {
+  // Draw fields (updated to handle both text and QR code fields)
+  const drawFields = useCallback(async () => {
     if (!templateImage || !canvasRef.current || !ctxRef.current || !imageRef.current) return;
 
     const ctx = ctxRef.current;
@@ -304,85 +361,129 @@ const MailMerge: React.FC = () => {
     // Ensure the image is available and draw it fresh
     ctx.drawImage(img, 0, 0);
 
-    // Draw field markers and demo text
-    fields.forEach((field, index) => {
-      // Get the display text (demo text or actual CSV data)
-      const displayText = getFieldDisplayText(field);
+    // Draw field markers and demo content
+    for (let index = 0; index < fields.length; index++) {
+      const field = fields[index];
       
-      // Draw demo text if available
-      if (displayText && displayText.trim()) {
-        // When demo text is present, only show the demo text, no pointer
-        drawFormattedText(
-          ctx,
-          displayText,
-          field.x,
-          field.y,
-          field.fontSize,
-          field.fontFamily || 'Arial, sans-serif',
-          field.color,
-          field.textAlign
-        );
-      } else {
-        // When no demo text, show the field pointer and name
-        // Draw marker circle
-        ctx.fillStyle = '#ef4444';
-        ctx.beginPath();
-        ctx.arc(field.x, field.y, 8, 0, 2 * Math.PI);
-        ctx.fill();
-
-        // Draw white center
-        ctx.fillStyle = '#ffffff';
-        ctx.beginPath();
-        ctx.arc(field.x, field.y, 4, 0, 2 * Math.PI);
-        ctx.fill();
-
-        // Draw field number
-        ctx.fillStyle = '#1f2937';
-        ctx.font = 'bold 12px Arial';
-        ctx.textBaseline = 'middle'; // Use middle for UI text
-        ctx.fillText(`${index + 1}`, field.x + 12, field.y - 8);
+      if (field.type === 'text') {
+        // Handle text field
+        const displayText = getFieldDisplayText(field);
         
-        // Draw field name
-        ctx.fillStyle = '#1f2937';
-        ctx.font = '12px Arial';
-        ctx.textBaseline = 'middle'; // Use middle for UI text
-        ctx.fillText(field.name, field.x + 12, field.y + 6);
-      }
-
-      // Draw selection indicator
-      if (index === selectedFieldIndex) {
-        ctx.strokeStyle = '#10b981';
-        ctx.lineWidth = 2;
+        // Draw demo text if available
         if (displayText && displayText.trim()) {
-          // Calculate text bounds considering alignment
-          const segments = parseMarkdownText(displayText);
-          let totalWidth = 0;
-          
-          // Calculate total width with formatting
-          segments.forEach(segment => {
-            applyTextFormatting(ctx, segment.formats, field.fontFamily || 'Arial, sans-serif', field.fontSize);
-            totalWidth += ctx.measureText(segment.text).width;
-          });
-          
-          // Calculate text bounds based on alignment
-          let textStartX = field.x;
-          if (field.textAlign === 'center') {
-            textStartX = field.x - totalWidth / 2;
-          } else if (field.textAlign === 'right') {
-            textStartX = field.x - totalWidth;
-          }
-          
-          ctx.strokeRect(
-            textStartX - 2, 
-            field.y - 2, 
-            totalWidth + 4, 
-            field.fontSize + 4
+          // When demo text is present, only show the demo text, no pointer
+          drawFormattedText(
+            ctx,
+            displayText,
+            field.x,
+            field.y,
+            field.fontSize,
+            field.fontFamily || 'Arial, sans-serif',
+            field.color,
+            field.textAlign
           );
         } else {
-          ctx.strokeRect(field.x - 10, field.y - 10, 20, 20);
+          // When no demo text, show the field pointer and name
+          // Draw marker circle
+          ctx.fillStyle = '#ef4444';
+          ctx.beginPath();
+          ctx.arc(field.x, field.y, 8, 0, 2 * Math.PI);
+          ctx.fill();
+
+          // Draw white center
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.arc(field.x, field.y, 4, 0, 2 * Math.PI);
+          ctx.fill();
+
+          // Draw field number
+          ctx.fillStyle = '#1f2937';
+          ctx.font = 'bold 12px Arial';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(`${index + 1}`, field.x + 12, field.y - 8);
+          
+          // Draw field name
+          ctx.fillStyle = '#1f2937';
+          ctx.font = '12px Arial';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(field.name, field.x + 12, field.y + 6);
+        }
+
+        // Draw selection indicator for text field
+        if (index === selectedFieldIndex) {
+          ctx.strokeStyle = '#10b981';
+          ctx.lineWidth = 2;
+          if (displayText && displayText.trim()) {
+            // Calculate text bounds considering alignment
+            const segments = parseMarkdownText(displayText);
+            let totalWidth = 0;
+            
+            // Calculate total width with formatting
+            segments.forEach(segment => {
+              applyTextFormatting(ctx, segment.formats, field.fontFamily || 'Arial, sans-serif', field.fontSize);
+              totalWidth += ctx.measureText(segment.text).width;
+            });
+            
+            // Calculate text bounds based on alignment
+            let textStartX = field.x;
+            if (field.textAlign === 'center') {
+              textStartX = field.x - totalWidth / 2;
+            } else if (field.textAlign === 'right') {
+              textStartX = field.x - totalWidth;
+            }
+            
+            ctx.strokeRect(
+              textStartX - 2, 
+              field.y - 2, 
+              totalWidth + 4, 
+              field.fontSize + 4
+            );
+          } else {
+            ctx.strokeRect(field.x - 10, field.y - 10, 20, 20);
+          }
+        }
+      } else if (field.type === 'qrcode') {
+        // Handle QR code field
+        const displayText = getFieldDisplayText(field);
+        
+        if (displayText && displayText.trim()) {
+          // Draw QR code using the imported function
+          await drawQRCodeOnCanvas(ctx, field, displayText);
+        } else {
+          // When no demo text, show the field pointer and name
+          // Draw QR placeholder
+          ctx.fillStyle = '#f3f4f6';
+          ctx.fillRect(field.x, field.y, field.size, field.size);
+          ctx.strokeStyle = '#d1d5db';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(field.x, field.y, field.size, field.size);
+          
+          // Draw QR icon in center
+          ctx.fillStyle = '#6b7280';
+          ctx.font = '12px Arial';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('QR', field.x + field.size / 2, field.y + field.size / 2);
+          
+          // Draw field number and name
+          ctx.fillStyle = '#1f2937';
+          ctx.font = 'bold 12px Arial';
+          ctx.textAlign = 'left';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(`${index + 1}`, field.x + field.size + 8, field.y + 8);
+          
+          ctx.font = '12px Arial';
+          ctx.fillText(field.name, field.x + field.size + 8, field.y + 24);
+        }
+
+        // Draw selection indicator for QR field
+        if (index === selectedFieldIndex) {
+          ctx.strokeStyle = '#10b981';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(field.x - 2, field.y - 2, field.size + 4, field.size + 4);
         }
       }
-    });
+    }
   }, [fields, selectedFieldIndex, templateImage, currentCsvRowIndex, csvData, fieldMappings]);
 
   // Redraw canvas when fields change (only if image is loaded)
@@ -402,7 +503,7 @@ const MailMerge: React.FC = () => {
     return { x, y };
   }, [zoomLevel, canvasOffsetX, canvasOffsetY]);
 
-  // Get field at position
+  // Get field at position (updated to handle both text and QR code fields)
   const getFieldAtPosition = useCallback((x: number, y: number): { index: number, isResizeHandle: boolean } => {
     if (!ctxRef.current) return { index: -1, isResizeHandle: false };
 
@@ -410,34 +511,42 @@ const MailMerge: React.FC = () => {
       const field = fields[i];
       const displayText = getFieldDisplayText(field);
       
-      if (displayText && displayText.trim()) {
-        // Calculate text bounds considering alignment
-        const segments = parseMarkdownText(displayText);
-        let totalWidth = 0;
-        
-        // Calculate total width with formatting
-        segments.forEach(segment => {
-          applyTextFormatting(ctxRef.current!, segment.formats, field.fontFamily || 'Arial, sans-serif', field.fontSize);
-          totalWidth += ctxRef.current!.measureText(segment.text).width;
-        });
-        
-        // Calculate text bounds based on alignment
-        let textStartX = field.x;
-        if (field.textAlign === 'center') {
-          textStartX = field.x - totalWidth / 2;
-        } else if (field.textAlign === 'right') {
-          textStartX = field.x - totalWidth;
+      if (field.type === 'text') {
+        if (displayText && displayText.trim()) {
+          // Calculate text bounds considering alignment
+          const segments = parseMarkdownText(displayText);
+          let totalWidth = 0;
+          
+          // Calculate total width with formatting
+          segments.forEach(segment => {
+            applyTextFormatting(ctxRef.current!, segment.formats, field.fontFamily || 'Arial, sans-serif', field.fontSize);
+            totalWidth += ctxRef.current!.measureText(segment.text).width;
+          });
+          
+          // Calculate text bounds based on alignment
+          let textStartX = field.x;
+          if (field.textAlign === 'center') {
+            textStartX = field.x - totalWidth / 2;
+          } else if (field.textAlign === 'right') {
+            textStartX = field.x - totalWidth;
+          }
+          
+          // Check if click is within text bounds
+          if (x >= textStartX && x <= textStartX + totalWidth &&
+              y >= field.y && y <= field.y + field.fontSize) {
+            return { index: i, isResizeHandle: false };
+          }
+        } else {
+          // Check marker circle
+          const distance = Math.sqrt((x - field.x) ** 2 + (y - field.y) ** 2);
+          if (distance <= 8) {
+            return { index: i, isResizeHandle: false };
+          }
         }
-        
-        // Check if click is within text bounds
-        if (x >= textStartX && x <= textStartX + totalWidth &&
-            y >= field.y && y <= field.y + field.fontSize) {
-          return { index: i, isResizeHandle: false };
-        }
-      } else {
-        // Check marker circle
-        const distance = Math.sqrt((x - field.x) ** 2 + (y - field.y) ** 2);
-        if (distance <= 8) {
+      } else if (field.type === 'qrcode') {
+        // Check QR code bounds
+        if (x >= field.x && x <= field.x + field.size &&
+            y >= field.y && y <= field.y + field.size) {
           return { index: i, isResizeHandle: false };
         }
       }
@@ -478,7 +587,7 @@ const MailMerge: React.FC = () => {
           y: coords.y, 
           fieldX: field.x, 
           fieldY: field.y, 
-          fontSize: field.fontSize 
+          fontSize: field.type === 'text' ? field.fontSize : field.size
         };
         canvasRef.current.style.cursor = 'nw-resize';
       } else {
@@ -488,7 +597,7 @@ const MailMerge: React.FC = () => {
           y: coords.y, 
           fieldX: field.x, 
           fieldY: field.y, 
-          fontSize: field.fontSize 
+          fontSize: field.type === 'text' ? field.fontSize : field.size
         };
         canvasRef.current.style.cursor = 'move';
       }
@@ -553,7 +662,7 @@ const MailMerge: React.FC = () => {
     }
   }, [isPanning]);
 
-  // Handle wheel for field resizing
+  // Handle wheel for field resizing (updated to handle both text and QR code fields)
   const handleWheel = useCallback((e: React.WheelEvent<HTMLCanvasElement>) => {
     // Always prevent default scrolling behavior
     e.preventDefault();
@@ -567,11 +676,18 @@ const MailMerge: React.FC = () => {
       // Only resize if hovering over a field
       const field = fields[hit.index];
       const delta = e.deltaY > 0 ? -2 : 2;
-      const newFontSize = Math.max(8, Math.min(72, field.fontSize + delta));
       
-      setFields(prev => prev.map((f, i) => 
-        i === hit.index ? { ...f, fontSize: newFontSize } : f
-      ));
+      if (field.type === 'text') {
+        const newFontSize = Math.max(8, Math.min(72, field.fontSize + delta));
+        setFields(prev => prev.map((f, i) => 
+          i === hit.index ? { ...f, fontSize: newFontSize } : f
+        ));
+      } else if (field.type === 'qrcode') {
+        const newSize = Math.max(20, Math.min(200, field.size + delta));
+        setFields(prev => prev.map((f, i) => 
+          i === hit.index ? { ...f, size: newSize } : f
+        ));
+      }
     }
     // If not hovering over a field, do nothing (no scrolling)
   }, [fields, getCanvasCoordinates, getFieldAtPosition]);
@@ -686,8 +802,49 @@ const MailMerge: React.FC = () => {
     };
   }, [isResizingSidebar]);
 
-  // Update field
-  const updateField = useCallback((index: number, property: keyof Field, value: string | number) => {
+  // Update field - separate functions for different field types
+  const updateTextField = useCallback((index: number, property: keyof TextField, value: any) => {
+    setFields(prev => prev.map((field, i) => {
+      if (i === index && field.type === 'text') {
+        const updatedField = { ...field, [property]: value };
+        
+        // If the field name is being changed, update the mapping as well
+        if (property === 'name' && typeof value === 'string') {
+          setFieldMappings(prevMappings => prevMappings.map(mapping => 
+            mapping.fieldName === field.name 
+              ? { ...mapping, fieldName: value }
+              : mapping
+          ));
+        }
+        
+        return updatedField;
+      }
+      return field;
+    }));
+  }, []);
+
+  const updateQRField = useCallback((index: number, property: keyof QRCodeFieldData, value: any) => {
+    setFields(prev => prev.map((field, i) => {
+      if (i === index && field.type === 'qrcode') {
+        const updatedField = { ...field, [property]: value };
+        
+        // If the field name is being changed, update the mapping as well
+        if (property === 'name' && typeof value === 'string') {
+          setFieldMappings(prevMappings => prevMappings.map(mapping => 
+            mapping.fieldName === field.name 
+              ? { ...mapping, fieldName: value }
+              : mapping
+          ));
+        }
+        
+        return updatedField;
+      }
+      return field;
+    }));
+  }, []);
+
+  // Generic field update for common properties
+  const updateField = useCallback((index: number, property: 'name' | 'demoText' | 'color' | 'x' | 'y', value: any) => {
     setFields(prev => prev.map((field, i) => {
       if (i === index) {
         const updatedField = { ...field, [property]: value };
@@ -824,23 +981,27 @@ const MailMerge: React.FC = () => {
         });
 
         // Draw fields with CSV data
-        fields.forEach(field => {
+        for (const field of fields) {
           const mapping = fieldMappings.find(m => m.fieldName === field.name);
           const text = mapping?.csvColumn ? row[mapping.csvColumn] || '' : field.demoText || '';
           
           if (text) {
-            drawFormattedText(
-              ctx,
-              text,
-              field.x,
-              field.y,
-              field.fontSize,
-              field.fontFamily,
-              field.color,
-              field.textAlign
-            );
+            if (field.type === 'text') {
+              drawFormattedText(
+                ctx,
+                text,
+                field.x,
+                field.y,
+                field.fontSize,
+                field.fontFamily,
+                field.color,
+                field.textAlign
+              );
+            } else if (field.type === 'qrcode') {
+              await drawQRCodeOnCanvas(ctx, field, text);
+            }
           }
-        });
+        }
 
         // Convert to blob and add to zip
         const blob = await new Promise<Blob>((resolve) =>
@@ -1105,6 +1266,9 @@ const MailMerge: React.FC = () => {
                           placeholder="Field Name"
                           className="bg-gray-700 text-white px-2 py-1 rounded text-sm flex-1 mr-2"
                         />
+                        <span className="text-xs bg-gray-600 px-2 py-1 rounded mr-2">
+                          {field.type === 'text' ? 'Text' : 'QR'}
+                        </span>
                         <div className="flex gap-1">
                           <button
                             onClick={() => setSelectedFieldIndex(index)}
@@ -1130,70 +1294,86 @@ const MailMerge: React.FC = () => {
                         placeholder="Demo text"
                         className="bg-gray-700 text-white px-2 py-1 rounded text-sm w-full mb-2"
                       />
-                      <div className="grid grid-cols-2 gap-2 mb-2">
-                        <input
-                          type="number"
-                          value={field.fontSize}
-                          onChange={(e) => updateField(index, 'fontSize', parseInt(e.target.value))}
-                          placeholder="Font Size"
-                          className="bg-gray-700 text-white px-2 py-1 rounded text-sm"
-                        />
-                        <select
-                          value={field.fontFamily}
-                          onChange={(e) => updateField(index, 'fontFamily', e.target.value)}
-                          className="bg-gray-700 text-white px-2 py-1 rounded text-sm"
-                        >
-                          {FONT_FAMILY_OPTIONS.map(font => (
-                            <option key={font.value} value={font.value}>{font.name}</option>
-                          ))}
-                        </select>
-                      </div>
                       
-                      {/* Text Alignment Controls 1 */}
-                      <div>
-                        <label className="block text-emerald-300 text-xs font-medium mb-2">Text Color</label>
-                        <div className="space-y-2">
-                          <div className="flex flex-wrap gap-1">
-                            {COLOR_PRESETS.map(color => (
-                              <button
-                                key={color.value}
-                                onClick={() => updateField(index, 'color', color.value)}
-                                className={`w-6 h-6 rounded border-2 ${field.color === color.value ? 'border-white' : 'border-gray-400'} hover:border-white transition-colors`}
-                                style={{ backgroundColor: color.value }}
-                                title={color.name}
-                              />
-                            ))}
-                          </div>
-                          <details className="mt-2">
-                            <summary className="text-xs text-gray-400 cursor-pointer hover:text-gray-300">Custom Color</summary>
+                      {field.type === 'text' ? (
+                        <>
+                          {/* Text Field Controls */}
+                          <div className="grid grid-cols-2 gap-2 mb-2">
                             <input
-                              type="color"
-                              value={field.color}
-                              onChange={(e) => updateField(index, 'color', e.target.value)}
-                              className="w-full h-8 bg-gray-700/50 border border-gray-500 rounded cursor-pointer mt-1"
+                              type="number"
+                              value={field.fontSize}
+                              onChange={(e) => updateTextField(index, 'fontSize', parseInt(e.target.value))}
+                              placeholder="Font Size"
+                              className="bg-gray-700 text-white px-2 py-1 rounded text-sm"
                             />
-                          </details>
-                        </div>
-                      </div>
-
-                      {/* Text Alignment Controls 2 */}
-                      <div className="mt-3">
-                        <label className="block text-emerald-300 text-xs font-medium mb-2">Text Alignment</label>
-                        <div className="flex gap-2">
-                          {TEXT_ALIGN_OPTIONS.map(option => (
-                            <button
-                              key={option.value}
-                              onClick={() => updateField(index, 'textAlign', option.value)}
-                              className={`flex-1 px-3 py-1 rounded-lg text-sm font-medium transition-all flex items-center justify-center
-                                ${field.textAlign === option.value ? 'bg-emerald-500 text-white' : 'bg-gray-700 text-emerald-300 hover:bg-emerald-600'}
-                              `}
-                              title={option.name}
+                            <select
+                              value={field.fontFamily}
+                              onChange={(e) => updateTextField(index, 'fontFamily', e.target.value)}
+                              className="bg-gray-700 text-white px-2 py-1 rounded text-sm"
                             >
-                              {option.name}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
+                              {FONT_FAMILY_OPTIONS.map(font => (
+                                <option key={font.value} value={font.value}>{font.name}</option>
+                              ))}
+                            </select>
+                          </div>
+                          
+                          {/* Text Color Controls */}
+                          <div>
+                            <label className="block text-emerald-300 text-xs font-medium mb-2">Text Color</label>
+                            <div className="space-y-2">
+                              <div className="flex flex-wrap gap-1">
+                                {COLOR_PRESETS.map(color => (
+                                  <button
+                                    key={color.value}
+                                    onClick={() => updateField(index, 'color', color.value)}
+                                    className={`w-6 h-6 rounded border-2 ${field.color === color.value ? 'border-white' : 'border-gray-400'} hover:border-white transition-colors`}
+                                    style={{ backgroundColor: color.value }}
+                                    title={color.name}
+                                  />
+                                ))}
+                              </div>
+                              <details className="mt-2">
+                                <summary className="text-xs text-gray-400 cursor-pointer hover:text-gray-300">Custom Color</summary>
+                                <input
+                                  type="color"
+                                  value={field.color}
+                                  onChange={(e) => updateField(index, 'color', e.target.value)}
+                                  className="w-full h-8 bg-gray-700/50 border border-gray-500 rounded cursor-pointer mt-1"
+                                />
+                              </details>
+                            </div>
+                          </div>
+
+                          {/* Text Alignment Controls */}
+                          <div className="mt-3">
+                            <label className="block text-emerald-300 text-xs font-medium mb-2">Text Alignment</label>
+                            <div className="flex gap-2">
+                              {TEXT_ALIGN_OPTIONS.map(option => (
+                                <button
+                                  key={option.value}
+                                  onClick={() => updateTextField(index, 'textAlign', option.value)}
+                                  className={`flex-1 px-3 py-1 rounded-lg text-sm font-medium transition-all flex items-center justify-center
+                                    ${field.textAlign === option.value ? 'bg-emerald-500 text-white' : 'bg-gray-700 text-emerald-300 hover:bg-emerald-600'}
+                                  `}
+                                  title={option.name}
+                                >
+                                  {option.name}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          {/* QR Code Field Controls */}
+                          <QRCodeFieldEditor
+                            field={field}
+                            onUpdate={(updatedField) => {
+                              setFields(prev => prev.map((f, i) => i === index ? updatedField : f));
+                            }}
+                          />
+                        </>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -1516,6 +1696,54 @@ const MailMerge: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Field Type Selection Modal */}
+      {showFieldTypeModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-gray-800 rounded-lg p-6 w-96 max-w-90vw">
+            <h3 className="text-lg font-semibold text-white mb-4">Choose Field Type</h3>
+            <div className="space-y-3">
+              <button
+                onClick={() => handleFieldTypeSelection('text')}
+                className="w-full p-4 bg-blue-600 hover:bg-blue-700 rounded-lg text-white text-left transition-colors"
+              >
+                <div className="flex items-center">
+                  <svg className="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                  </svg>
+                  <div>
+                    <div className="font-medium">Text Field</div>
+                    <div className="text-sm text-blue-200">Regular text with formatting options</div>
+                  </div>
+                </div>
+              </button>
+              <button
+                onClick={() => handleFieldTypeSelection('qrcode')}
+                className="w-full p-4 bg-green-600 hover:bg-green-700 rounded-lg text-white text-left transition-colors"
+              >
+                <div className="flex items-center">
+                  <svg className="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
+                  </svg>
+                  <div>
+                    <div className="font-medium">QR Code Field</div>
+                    <div className="text-sm text-green-200">Generate QR codes from CSV data</div>
+                  </div>
+                </div>
+              </button>
+            </div>
+            <button
+              onClick={() => {
+                setShowFieldTypeModal(false);
+                setPendingFieldPosition(null);
+              }}
+              className="w-full mt-4 p-2 bg-gray-600 hover:bg-gray-700 rounded-lg text-white transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -45,6 +45,55 @@ canvas {
   background: #9ca3af;
 }
 
+/* Range slider styles for dark theme */
+input[type="range"].slider {
+  -webkit-appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+input[type="range"].slider::-webkit-slider-track {
+  background: #374151;
+  height: 8px;
+  border-radius: 4px;
+}
+
+input[type="range"].slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  background: #10b981;
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+input[type="range"].slider::-webkit-slider-thumb:hover {
+  background: #059669;
+}
+
+input[type="range"].slider::-moz-range-track {
+  background: #374151;
+  height: 8px;
+  border-radius: 4px;
+  border: none;
+}
+
+input[type="range"].slider::-moz-range-thumb {
+  background: #10b981;
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+input[type="range"].slider::-moz-range-thumb:hover {
+  background: #059669;
+}
+
 /* Animation for success notification */
 @keyframes slide-in-right {
   from {
