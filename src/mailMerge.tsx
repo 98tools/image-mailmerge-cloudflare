@@ -20,6 +20,7 @@ const COLOR_PRESETS = [
 
 const FONT_FAMILY_OPTIONS = [
   { name: 'Arial', value: 'Arial, sans-serif' },
+  { name: 'Calibri', value: 'Calibri, sans-serif' },
   { name: 'Helvetica', value: 'Helvetica, Arial, sans-serif' },
   { name: 'Times New Roman', value: '"Times New Roman", Times, serif' },
   { name: 'Georgia', value: 'Georgia, serif' },
@@ -30,7 +31,10 @@ const FONT_FAMILY_OPTIONS = [
   { name: 'Comic Sans MS', value: '"Comic Sans MS", cursive' },
   { name: 'Palatino', value: '"Palatino Linotype", Palatino, serif' },
   { name: 'Tahoma', value: 'Tahoma, sans-serif' },
-  { name: 'Lucida Console', value: '"Lucida Console", monospace' }
+  { name: 'Lucida Console', value: '"Lucida Console", monospace' },
+  { name: 'Tajawal', value: '"Tajawal", sans-serif' },
+  { name: 'Amiri', value: '"Amiri", serif' },
+  { name: 'Dubai', value: '"Dubai", sans-serif' },
 ];
 
 // Add text alignment options constant
