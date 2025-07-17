@@ -21,12 +21,16 @@ A powerful, web-based image mail merge tool that allows you to create personaliz
 
 - 🎨 **Drag & Drop Interface** - Easy-to-use interface for uploading images and CSV files
 - 📊 **CSV Data Integration** - Import data from CSV files for batch processing
-- 🎯 **Text Positioning** - Precise text placement with visual positioning controls
-- 🎭 **Rich Text Styling** - Multiple fonts, colors, and text effects
+- 🎯 **Visual Field Positioning** - Click to add, drag to move, scroll to resize text and QR codes
+- 🎭 **Rich Text Styling** - Multiple fonts, colors, text alignment, and markdown formatting
+- 🔤 **Automatic Font Detection** - Discovers all system fonts automatically (200+ fonts typically)
+- 📱 **QR Code Support** - Add dynamic QR codes with data from CSV columns
+- 🔍 **Zoom & Pan Controls** - Navigate large images with precision
 - 📱 **Responsive Design** - Works seamlessly on desktop and mobile devices
 - 🚀 **Cloudflare Workers Ready** - Optimized for edge deployment
-- 📦 **Batch Export** - Download all generated images as a ZIP file
+- 📦 **Batch Export** - Download all generated images as a ZIP file with custom naming
 - 🔄 **Real-time Preview** - See changes instantly as you customize
+- ⌨️ **Keyboard Shortcuts** - Zoom in/out with Ctrl+/Ctrl- and fit with Ctrl+0
 
 ## 🚀 Quick Start
 
@@ -65,6 +69,7 @@ Deploy directly to Cloudflare Workers with one click:
 - **Styling**: Tailwind CSS
 - **Build Tool**: Vite
 - **File Processing**: JSZip, PapaParse
+- **Font Detection**: Font Access API + Canvas-based fallback
 - **Deployment**: Cloudflare Workers
 - **Development**: Hot reload, TypeScript support
 
@@ -73,32 +78,44 @@ Deploy directly to Cloudflare Workers with one click:
 1. **Upload Background Image**
    - Click "Choose Image" or drag and drop an image file
    - Supported formats: JPG, PNG, GIF, WebP
+   - Use zoom controls and middle-click to pan around large images
 
 2. **Upload CSV Data**
    - Click "Choose CSV File" or drag and drop a CSV file
    - First row should contain column headers
-   - Data will be used to populate text fields
+   - Data will be used to populate text fields and QR codes
 
-3. **Add Text Elements**
-   - Click "Add Text Element" to create customizable text
-   - Use the visual editor to position text precisely
-   - Customize font, size, color, and effects
+3. **Add Fields**
+   - Click anywhere on the image to add a new field
+   - Choose between **Text Field** or **QR Code Field**
+   - Enter a descriptive name for the field
 
-4. **Map CSV Columns**
-   - Use dropdown menus to map CSV columns to text elements
-   - Preview shows how data will appear on each image
+4. **Customize Fields**
+   - **Drag** fields to reposition them
+   - **Scroll** over fields to resize font/QR code size
+   - For text: Choose font, color, alignment, and add demo text
+   - For QR codes: Set size, colors, and demo data
+   - Use **markdown formatting** in text (bold: `**text**`, italic: `*text*`)
 
-5. **Generate Images**
+5. **Map CSV Columns**
+   - Use dropdown menus to map CSV columns to your fields
+   - Use preview navigation to see how different rows will look
+   - Set up file naming using CSV columns and/or numbering
+
+6. **Generate Images**
    - Click "Generate All Images" to create personalized versions
-   - Download individual images or all as a ZIP file
+   - Download as a ZIP file with your custom naming scheme
 
 ## 🎯 Use Cases
 
-- **Event Invitations** - Create personalized invitations with guest names
-- **Certificates** - Generate certificates with recipient details
-- **Marketing Materials** - Customize promotional images with customer data
-- **Badge Generation** - Create name badges for conferences or events
-- **Social Media Content** - Bulk create personalized social media posts
+- **Event Invitations** - Create personalized invitations with guest names and QR codes for RSVP
+- **Certificates** - Generate certificates with recipient details and verification QR codes
+- **Conference Badges** - Create name badges with attendee info and session QR codes
+- **Marketing Materials** - Customize promotional images with customer data and tracking codes
+- **Event Tickets** - Generate tickets with unique QR codes for entry validation
+- **Product Labels** - Create labels with product info and QR codes for inventory tracking
+- **Social Media Content** - Bulk create personalized social media posts with engagement tracking
+- **ID Cards** - Generate employee or student IDs with photos and access QR codes
 
 
 ## 🚀 Deployment
@@ -158,12 +175,18 @@ We welcome contributions! Please follow these steps:
 
 ## 📋 Roadmap
 
-- [ ] **Enhanced Font Support**
+- [x] **Enhanced Font Support**
+  - [x] Automatic system font detection (200+ fonts)
+  - [x] Font search and filtering
+  - [x] Cross-platform font compatibility
   - [ ] Font preview before selection
-  - [ ] Fonts for different languages ~Arabic
   - [ ] Google Fonts API integration
   - [ ] Custom font upload
-  - [ ] Font weight and style options
+
+- [x] **QR Code Integration**
+  - [x] Dynamic QR code generation from CSV data
+  - [x] Customizable QR code size and colors
+  - [x] Visual QR code positioning
 
 - [ ] **Email Integration**
   - [ ] SMTP support for email delivery
@@ -171,13 +194,12 @@ We welcome contributions! Please follow these steps:
   - [ ] Bulk email sending
 
 - [ ] **Advanced Features**
+  - [ ] Undo/Redo functionality
   - [ ] Image filters and effects
   - [ ] Multiple image formats export
   - [ ] Batch processing optimization
-  - [ ] Template library
 
 - [ ] **User Experience**
-  - [ ] Undo/Redo functionality
   - [ ] Keyboard shortcuts
   - [ ] Dark mode support
   - [ ] Multi-language support
@@ -196,6 +218,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Styled with [Tailwind CSS](https://tailwindcss.com/)
 - Deployed on [Cloudflare Workers](https://workers.cloudflare.com/)
 - File processing by [JSZip](https://stuk.github.io/jszip/) and [PapaParse](https://www.papaparse.com/)
+- Font detection using [Font Access API](https://developer.mozilla.org/en-US/docs/Web/API/Local_Font_Access_API) and Canvas fallbacks
 
 ---
 
