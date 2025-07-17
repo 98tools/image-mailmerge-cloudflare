@@ -60,7 +60,7 @@ Deploy directly to Cloudflare Workers with one click:
 
 4. **Open in browser**
    ```
-   http://localhost:5173
+   http://localhost:3005
    ```
 
 ## 🛠️ Tech Stack
