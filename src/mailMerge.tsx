@@ -1,7 +1,8 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import Papa from 'papaparse';
 import JSZip from 'jszip';
 import { QRCodeFieldData, QRCodeFieldEditor, drawQRCodeOnCanvas } from './components/QRCodeField';
+import { comprehensiveFontList , DEFAULT_FONT_OPTIONS} from './components/fontsList';
 
 // Color and font presets (from Tailwind CSS)
 const COLOR_PRESETS = [
@@ -18,24 +19,360 @@ const COLOR_PRESETS = [
   { name: 'Pink', value: '#ec4899' }
 ];
 
-const FONT_FAMILY_OPTIONS = [
-  { name: 'Arial', value: 'Arial, sans-serif' },
-  { name: 'Calibri', value: 'Calibri, sans-serif' },
-  { name: 'Helvetica', value: 'Helvetica, Arial, sans-serif' },
-  { name: 'Times New Roman', value: '"Times New Roman", Times, serif' },
-  { name: 'Georgia', value: 'Georgia, serif' },
-  { name: 'Courier New', value: '"Courier New", Courier, monospace' },
-  { name: 'Verdana', value: 'Verdana, sans-serif' },
-  { name: 'Trebuchet MS', value: '"Trebuchet MS", sans-serif' },
-  { name: 'Impact', value: 'Impact, Arial Black, sans-serif' },
-  { name: 'Comic Sans MS', value: '"Comic Sans MS", cursive' },
-  { name: 'Palatino', value: '"Palatino Linotype", Palatino, serif' },
-  { name: 'Tahoma', value: 'Tahoma, sans-serif' },
-  { name: 'Lucida Console', value: '"Lucida Console", monospace' },
-  { name: 'Tajawal', value: '"Tajawal", sans-serif' },
-  { name: 'Amiri', value: '"Amiri", serif' },
-  { name: 'Dubai', value: '"Dubai", sans-serif' },
-];
+
+// Dynamic font discovery methods
+
+// Method 1: Discover fonts using CSS enumeration
+const discoverFontsFromCSS = async (): Promise<Array<{ name: string; value: string }>> => {
+  const discoveredFonts: Array<{ name: string; value: string }> = [];
+  
+  try {
+    // Create a hidden element to test font rendering
+    const testElement = document.createElement('div');
+    testElement.style.position = 'absolute';
+    testElement.style.visibility = 'hidden';
+    testElement.style.fontSize = '100px';
+    testElement.style.left = '-9999px';
+    testElement.textContent = 'mmmmmmmmmmlli.';
+    document.body.appendChild(testElement);
+
+    // Get computed style baseline with a generic font
+    testElement.style.fontFamily = 'monospace';
+    const monoWidth = testElement.offsetWidth;
+    
+    testElement.style.fontFamily = 'serif';
+    const serifWidth = testElement.offsetWidth;
+    
+    testElement.style.fontFamily = 'sans-serif';
+    const sansWidth = testElement.offsetWidth;
+
+    // Method: Try common font name patterns and variations
+    const fontPatterns = [
+      // System fonts that might be available
+      'system-ui', '-apple-system', 'BlinkMacSystemFont',
+      
+      // Windows font variations
+      'Segoe UI', 'Segoe UI Light', 'Segoe UI Semibold', 'Segoe UI Symbol',
+      'Microsoft Sans Serif', 'Microsoft YaHei', 'Microsoft JhengHei',
+      'Calibri Light', 'Cambria Math', 'Candara Light',
+      
+      // macOS font variations  
+      'SF Pro Display', 'SF Pro Text', 'SF Compact Display', 'SF Compact Text',
+      'Helvetica Neue Light', 'Avenir Next', 'Avenir Next Condensed',
+      
+      // Adobe fonts (if installed)
+      'Source Sans Pro', 'Source Serif Pro', 'Source Code Pro',
+      'Adobe Clean', 'Adobe Garamond Pro', 'Minion Pro',
+      
+      // Microsoft Office fonts
+      'Calibri Light', 'Cambria Math', 'Candara Light', 'Consolas',
+      'Constantia', 'Corbel Light', 'Franklin Gothic Medium',
+      
+      // Google Fonts (commonly installed)
+      'Open Sans', 'Open Sans Light', 'Open Sans Condensed',
+      'Roboto', 'Roboto Light', 'Roboto Condensed', 'Roboto Slab',
+      'Lato', 'Montserrat', 'Source Sans Pro', 'PT Sans',
+      
+      // Programming fonts
+      'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Operator Mono',
+      'Input Mono', 'Dank Mono', 'Victor Mono', 'Anonymous Pro',
+      
+      // Design fonts
+      'Proxima Nova', 'Avenir', 'Futura PT', 'Brandon Grotesque',
+      'Gotham', 'Circular', 'Inter', 'SF Mono'
+    ];
+
+    for (const fontName of fontPatterns) {
+      testElement.style.fontFamily = `"${fontName}", monospace`;
+      const testWidth1 = testElement.offsetWidth;
+      
+      testElement.style.fontFamily = `"${fontName}", serif`;
+      const testWidth2 = testElement.offsetWidth;
+      
+      testElement.style.fontFamily = `"${fontName}", sans-serif`;
+      const testWidth3 = testElement.offsetWidth;
+      
+      // If any of the widths differ from baseline, font is likely available (more permissive)
+      if ((Math.abs(testWidth1 - monoWidth) > 0.5) || 
+          (Math.abs(testWidth2 - serifWidth) > 0.5) || 
+          (Math.abs(testWidth3 - sansWidth) > 0.5)) {
+        const fontValue = fontName.includes(' ') ? `"${fontName}", sans-serif` : `${fontName}, sans-serif`;
+        discoveredFonts.push({ name: fontName, value: fontValue });
+      }
+      
+      // Allow UI to breathe
+      if (discoveredFonts.length % 10 === 0) {
+        await new Promise(resolve => setTimeout(resolve, 1));
+      }
+    }
+
+    document.body.removeChild(testElement);
+    console.log(`CSS enumeration found ${discoveredFonts.length} fonts`);
+    
+  } catch (error) {
+    console.error('CSS font enumeration error:', error);
+  }
+  
+  return discoveredFonts;
+};
+
+// Method 2: Discover fonts from document.fonts
+const discoverFontsFromDocument = async (): Promise<Array<{ name: string; value: string }>> => {
+  const discoveredFonts: Array<{ name: string; value: string }> = [];
+  
+  try {
+    if ('fonts' in document) {
+      // Wait for fonts to be ready
+      await document.fonts.ready;
+      
+      const fontSet = new Set<string>();
+      
+      // Iterate through loaded fonts
+      document.fonts.forEach((font) => {
+        if (font.family && !fontSet.has(font.family)) {
+          fontSet.add(font.family);
+          const fontName = font.family;
+          const fontValue = fontName.includes(' ') ? `"${fontName}", sans-serif` : `${fontName}, sans-serif`;
+          discoveredFonts.push({ name: fontName, value: fontValue });
+        }
+      });
+      
+      console.log(`document.fonts enumeration found ${discoveredFonts.length} fonts`);
+    }
+  } catch (error) {
+    console.error('document.fonts enumeration error:', error);
+  }
+  
+  return discoveredFonts;
+};
+
+// Method 3: Font discovery by testing variations and patterns
+const discoverFontsByPattern = async (): Promise<Array<{ name: string; value: string }>> => {
+  const discoveredFonts: Array<{ name: string; value: string }> = [];
+  
+  try {
+    // Test font name patterns that are commonly used
+    const fontBases = [
+      'Arial', 'Helvetica', 'Times', 'Courier', 'Georgia', 'Verdana', 'Calibri',
+      'Segoe', 'SF', 'Avenir', 'Futura', 'Gill', 'Optima', 'Trebuchet',
+      'Ubuntu', 'Roboto', 'Open', 'Source', 'Noto', 'Liberation', 'DejaVu',
+      'Fira', 'Inter', 'Lato', 'Montserrat', 'Poppins', 'Playfair'
+    ];
+    
+    const variations = [
+      '', ' Light', ' Regular', ' Medium', ' Bold', ' Black', ' Thin',
+      ' Condensed', ' Extended', ' Narrow', ' Wide',
+      ' Sans', ' Serif', ' Mono', ' Display', ' Text',
+      ' Pro', ' UI', ' MT', ' MS'
+    ];
+    
+    const fontSet = new Set<string>();
+    
+    for (const base of fontBases) {
+      for (const variation of variations) {
+        const fontName = base + variation;
+        
+        if (!fontSet.has(fontName) && testFontAvailabilityAdvanced(fontName)) {
+          fontSet.add(fontName);
+          const fontValue = fontName.includes(' ') ? `"${fontName}", sans-serif` : `${fontName}, sans-serif`;
+          discoveredFonts.push({ name: fontName, value: fontValue });
+        }
+        
+        // Also test with common prefixes
+        const prefixes = ['Microsoft ', 'Adobe ', 'Google ', 'Apple '];
+        for (const prefix of prefixes) {
+          const prefixedFont = prefix + fontName;
+          if (!fontSet.has(prefixedFont) && testFontAvailabilityAdvanced(prefixedFont)) {
+            fontSet.add(prefixedFont);
+            const fontValue = prefixedFont.includes(' ') ? `"${prefixedFont}", sans-serif` : `${prefixedFont}, sans-serif`;
+            discoveredFonts.push({ name: prefixedFont, value: fontValue });
+          }
+        }
+        
+        // Allow UI to breathe
+        if (discoveredFonts.length % 20 === 0) {
+          await new Promise(resolve => setTimeout(resolve, 1));
+        }
+      }
+    }
+    
+    console.log(`Pattern-based discovery found ${discoveredFonts.length} fonts`);
+  } catch (error) {
+    console.error('Pattern-based font discovery error:', error);
+  }
+  
+  return discoveredFonts;
+};
+
+// Enhanced canvas-based font detection with broader testing
+const testFontAvailabilityAdvanced = (fontName: string): boolean => {
+  try {
+    // Use multiple test methods for better accuracy
+    const testStrings = [
+      'mmmmmmmmmmlli', // Different character widths
+      'abcdefghijklmnopqrstuvwxyz', // Full alphabet
+      '1234567890', // Numbers
+      'The quick brown fox jumps', // Mixed content
+    ];
+    
+    const testSizes = ['16px', '24px', '32px'];
+    const fallbackFonts = ['monospace', 'serif', 'sans-serif'];
+    
+    for (const testString of testStrings) {
+      for (const testSize of testSizes) {
+        for (const fallbackFont of fallbackFonts) {
+          const canvas = document.createElement('canvas');
+          const context = canvas.getContext('2d')!;
+          
+          // Measure fallback font
+          context.font = `${testSize} ${fallbackFont}`;
+          const fallbackMetrics = context.measureText(testString);
+          const fallbackWidth = fallbackMetrics.width;
+          
+          // Measure with target font
+          context.font = `${testSize} "${fontName}", ${fallbackFont}`;
+          const testMetrics = context.measureText(testString);
+          const testWidth = testMetrics.width;
+          
+          // If widths differ even slightly, font is available (more permissive)
+          if (Math.abs(testWidth - fallbackWidth) > 0.1) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  } catch (error) {
+    console.warn(`Error testing font ${fontName}:`, error);
+    return false;
+  }
+};
+
+// Function to detect available fonts on the system
+const detectSystemFonts = async (): Promise<Array<{ name: string; value: string }>> => {
+  const detectedFonts: Array<{ name: string; value: string }> = [];
+  
+  // First, try to request Font Access API permission
+  try {
+    if ('queryLocalFonts' in navigator) {
+      try {
+        // Request permission first
+        const permission = await navigator.permissions.query({ name: 'local-fonts' as any });
+        console.log('Font Access API permission:', permission.state);
+        
+        if (permission.state === 'granted' || permission.state === 'prompt') {
+          const fonts = await (navigator as any).queryLocalFonts();
+          const fontSet = new Set<string>();
+          
+          console.log(`Font Access API returned ${fonts.length} fonts`);
+          
+          fonts.forEach((font: any) => {
+            if (font.family && !fontSet.has(font.family)) {
+              fontSet.add(font.family);
+              const fontName = font.family;
+              const fontValue = fontName.includes(' ') ? `"${fontName}", sans-serif` : `${fontName}, sans-serif`;
+              detectedFonts.push({ name: fontName, value: fontValue });
+            }
+          });
+          
+          if (detectedFonts.length > 0) {
+            console.log(`Successfully detected ${detectedFonts.length} fonts via Font Access API`);
+            detectedFonts.sort((a, b) => a.name.localeCompare(b.name));
+            return detectedFonts;
+          }
+        }
+      } catch (error) {
+        console.log('Font Access API permission denied or failed:', error);
+      }
+    }
+  } catch (error) {
+    console.log('Font Access API not available:', error);
+  }
+
+  // Dynamic font discovery - try to discover fonts without predefined lists
+  console.log('Attempting dynamic font discovery...');
+  
+  // Method 1: CSS font-family enumeration (works in some browsers)
+  try {
+    const discoveredFonts = await discoverFontsFromCSS();
+    if (discoveredFonts.length > 0) {
+      console.log(`Discovered ${discoveredFonts.length} fonts via CSS enumeration`);
+      detectedFonts.push(...discoveredFonts);
+    }
+  } catch (error) {
+    console.log('CSS font enumeration failed:', error);
+  }
+
+  // Method 2: Font analysis via document.fonts
+  try {
+    const documentFonts = await discoverFontsFromDocument();
+    if (documentFonts.length > 0) {
+      console.log(`Discovered ${documentFonts.length} fonts via document.fonts`);
+      detectedFonts.push(...documentFonts);
+    }
+  } catch (error) {
+    console.log('document.fonts enumeration failed:', error);
+  }
+
+  // Method 3: Pattern-based font discovery
+  try {
+    const patternFonts = await discoverFontsByPattern();
+    if (patternFonts.length > 0) {
+      console.log(`Discovered ${patternFonts.length} fonts via pattern testing`);
+      detectedFonts.push(...patternFonts);
+    }
+  } catch (error) {
+    console.log('Pattern-based font discovery failed:', error);
+  }
+  
+  // Method 3: Enhanced fallback with comprehensive font testing
+  console.log('Using enhanced fallback font detection...');
+  
+  // Start with discovered fonts from dynamic methods
+  const allDiscoveredFonts = new Set<string>();
+  detectedFonts.forEach(font => allDiscoveredFonts.add(font.name));
+    
+  // Test all fonts (discovered + comprehensive) using advanced detection
+  const allFontsToTest = [...new Set([...allDiscoveredFonts, ...comprehensiveFontList])];
+  console.log(`Testing ${allFontsToTest.length} fonts with enhanced detection...`);
+  
+  const batchSize = 8; // Larger batches since we simplified the test
+  let testedCount = 0;
+  
+  for (let i = 0; i < allFontsToTest.length; i += batchSize) {
+    const batch = allFontsToTest.slice(i, i + batchSize);
+    
+    for (const fontName of batch) {
+      if (!detectedFonts.find(f => f.name === fontName)) {
+        if (testFontAvailabilityAdvanced(fontName)) {
+          const fontValue = fontName.includes(' ') || fontName.includes('-') ? 
+            `"${fontName}", sans-serif` : `${fontName}, sans-serif`;
+          detectedFonts.push({ name: fontName, value: fontValue });
+        }
+      }
+      testedCount++;
+    }
+    
+    // Allow UI to breathe and show progress
+    if (i % 40 === 0) {
+      console.log(`Progress: tested ${testedCount}/${allFontsToTest.length} fonts, found ${detectedFonts.length} available`);
+      await new Promise(resolve => setTimeout(resolve, 1));
+    }
+  }
+  
+  console.log(`Enhanced font detection complete: found ${detectedFonts.length} available fonts out of ${allFontsToTest.length} tested`);
+  
+  // Remove duplicates and sort
+  const uniqueFonts = detectedFonts.filter((font, index, self) => 
+    index === self.findIndex(f => f.name === font.name)
+  );
+  
+  uniqueFonts.sort((a, b) => a.name.localeCompare(b.name));
+  return uniqueFonts;
+};
+
+// State for available fonts (will be set after detection)
+let FONT_FAMILY_OPTIONS = DEFAULT_FONT_OPTIONS;
 
 // Add text alignment options constant
 const TEXT_ALIGN_OPTIONS = [
@@ -101,6 +438,14 @@ const MailMerge: React.FC = () => {
   const [currentCsvRowIndex, setCurrentCsvRowIndex] = useState(0);
   const [showFieldTypeModal, setShowFieldTypeModal] = useState(false);
   const [pendingFieldPosition, setPendingFieldPosition] = useState<{x: number, y: number} | null>(null);
+  
+  // Font-related state
+  const [availableFonts, setAvailableFonts] = useState<Array<{ name: string; value: string }>>(DEFAULT_FONT_OPTIONS);
+  const [isFontsLoading, setIsFontsLoading] = useState(false);
+  const [fontsLoaded, setFontsLoaded] = useState(false);
+  const [fontSearchTerm, setFontSearchTerm] = useState('');
+  const [showFontDropdown, setShowFontDropdown] = useState(-1); // -1 means no dropdown, index means which field's dropdown
+  const [fontDetectionMethod, setFontDetectionMethod] = useState<'api' | 'fallback' | 'none'>('none');
 
   // Refs
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -128,6 +473,79 @@ const MailMerge: React.FC = () => {
       }
     }
   }, []); // Only run once
+
+  // Detect system fonts on component mount
+  useEffect(() => {
+    const loadFonts = async () => {
+      if (fontsLoaded) return;
+      
+      setIsFontsLoading(true);
+      try {
+        console.log('Detecting system fonts...');
+        const detectedFonts = await detectSystemFonts();
+        console.log(`Detected ${detectedFonts.length} system fonts`);
+        
+        // Determine detection method used
+        if (detectedFonts.length > 50) {
+          setFontDetectionMethod('api');
+        } else if (detectedFonts.length > 0) {
+          setFontDetectionMethod('fallback');
+        } else {
+          setFontDetectionMethod('none');
+        }
+        
+        // Combine default fonts with detected fonts, avoiding duplicates
+        const combinedFonts = [...DEFAULT_FONT_OPTIONS];
+        
+        detectedFonts.forEach(font => {
+          if (!combinedFonts.find(existing => existing.name === font.name)) {
+            combinedFonts.push(font);
+          }
+        });
+        
+        // Sort all fonts alphabetically
+        combinedFonts.sort((a, b) => a.name.localeCompare(b.name));
+        
+        setAvailableFonts(combinedFonts);
+        FONT_FAMILY_OPTIONS = combinedFonts; // Update the global variable too
+        setFontsLoaded(true);
+        console.log(`Total fonts available: ${combinedFonts.length}`);
+      } catch (error) {
+        console.error('Error detecting fonts:', error);
+        setAvailableFonts(DEFAULT_FONT_OPTIONS);
+        setFontDetectionMethod('none');
+      } finally {
+        setIsFontsLoading(false);
+      }
+    };
+
+    loadFonts();
+  }, []); // Only run once
+
+  // Filter fonts based on search term
+  const filteredFonts = useMemo(() => {
+    if (!fontSearchTerm) return availableFonts;
+    return availableFonts.filter(font => 
+      font.name.toLowerCase().includes(fontSearchTerm.toLowerCase())
+    );
+  }, [availableFonts, fontSearchTerm]);
+
+  // Function to get font dropdown for a specific field
+  const getFontDropdownForField = useCallback((fieldIndex: number) => {
+    return showFontDropdown === fieldIndex;
+  }, [showFontDropdown]);
+
+  // Function to toggle font dropdown
+  const toggleFontDropdown = useCallback((fieldIndex: number) => {
+    setShowFontDropdown(prev => prev === fieldIndex ? -1 : fieldIndex);
+    setFontSearchTerm(''); // Reset search when opening dropdown
+  }, []);
+
+  // Function to close font dropdown when clicking outside
+  const closeFontDropdown = useCallback(() => {
+    setShowFontDropdown(-1);
+    setFontSearchTerm('');
+  }, []);
 
   // Handle image upload
   const handleImageUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -780,11 +1198,38 @@ const MailMerge: React.FC = () => {
         e.preventDefault();
         setZoomLevel(1);
       }
+      
+      // Escape to close font dropdown
+      if (e.key === 'Escape' && showFontDropdown !== -1) {
+        e.preventDefault();
+        closeFontDropdown();
+      }
     };
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [templateImage]);
+  }, [templateImage, showFontDropdown, closeFontDropdown]);
+
+  // Click outside handler for font dropdown
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (showFontDropdown !== -1) {
+        const target = e.target as Element;
+        // Check if click is outside font dropdown
+        if (!target.closest('.font-dropdown') && !target.closest('.font-dropdown-trigger')) {
+          closeFontDropdown();
+        }
+      }
+    };
+
+    if (showFontDropdown !== -1) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showFontDropdown, closeFontDropdown]);
 
   // Sidebar resize functionality
   const handleSidebarResizeStart = useCallback((e: React.MouseEvent) => {
@@ -1303,6 +1748,54 @@ const MailMerge: React.FC = () => {
                       <p>• <s>~~Strikethrough text~~</s> - Use double tildes</p>
                     </div>
                   </div>
+                  {isFontsLoading && (
+                    <div className="mt-3 flex items-center text-emerald-300 text-sm">
+                      <svg className="animate-spin w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                      </svg>
+                      Detecting system fonts... ({availableFonts.length} found)
+                    </div>
+                  )}
+                  {fontsLoaded && !isFontsLoading && (
+                    <div className="mt-3 space-y-2">
+                      <div className="text-emerald-300 text-sm">
+                        ✓ Found {availableFonts.length} fonts 
+                        {fontDetectionMethod === 'api' && <span className="text-emerald-400 ml-1">(Full access)</span>}
+                        {fontDetectionMethod === 'fallback' && <span className="text-yellow-400 ml-1">(Limited)</span>}
+                        {fontDetectionMethod === 'none' && <span className="text-red-400 ml-1">(Default only)</span>}
+                      </div>
+                      {fontDetectionMethod === 'fallback' && (
+                        <div className="text-xs text-yellow-300 bg-yellow-500/10 border border-yellow-400/30 rounded p-2">
+                          Enhanced font detection active. Using fallback method to detect {availableFonts.length} fonts.
+                          {(() => {
+                            const isChrome = navigator.userAgent.includes('Chrome');
+                            const isEdge = navigator.userAgent.includes('Edge') || navigator.userAgent.includes('Edg/');
+                            const chromeVersion = isChrome ? navigator.userAgent.match(/Chrome\/(\d+)/)?.[1] : null;
+                            const edgeVersion = isEdge ? navigator.userAgent.match(/Edg?\/(\d+)/)?.[1] : null;
+                            
+                            const hasAPI = 'queryLocalFonts' in navigator;
+                            const hasCompatibleBrowser = 
+                              (isChrome && chromeVersion && parseInt(chromeVersion) >= 103) ||
+                              (isEdge && edgeVersion && parseInt(edgeVersion) >= 103);
+                            
+                            if (!hasCompatibleBrowser) {
+                              return (
+                                <div className="mt-2 text-blue-300">
+                                  💡 For access to all system fonts, upgrade to Chrome 103+ or Edge 103+
+                                </div>
+                              );
+                            }
+                            return null;
+                          })()}
+                        </div>
+                      )}
+                      {fontDetectionMethod === 'none' && (
+                        <div className="text-xs text-red-300 bg-red-500/10 border border-red-400/30 rounded p-2">
+                          Font detection failed. Using default fonts only. Try "Reload" or upgrade your browser.
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
                 
                 <div className="space-y-3 mb-4">
@@ -1356,15 +1849,84 @@ const MailMerge: React.FC = () => {
                               placeholder="Font Size"
                               className="bg-gray-700 text-white px-2 py-1 rounded text-sm"
                             />
-                            <select
-                              value={field.fontFamily}
-                              onChange={(e) => updateTextField(index, 'fontFamily', e.target.value)}
-                              className="bg-gray-700 text-white px-2 py-1 rounded text-sm"
-                            >
-                              {FONT_FAMILY_OPTIONS.map(font => (
-                                <option key={font.value} value={font.value}>{font.name}</option>
-                              ))}
-                            </select>
+                            {/* Font Dropdown with Search */}
+                            <div className="relative">
+                              <button
+                                type="button"
+                                onClick={() => toggleFontDropdown(index)}
+                                className="font-dropdown-trigger w-full bg-gray-700 text-white px-2 py-1 rounded text-sm text-left flex items-center justify-between hover:bg-gray-600 transition-colors"
+                                disabled={isFontsLoading}
+                              >
+                                <span className="truncate">
+                                  {isFontsLoading ? 'Loading fonts...' : 
+                                   (availableFonts.find(font => font.value === field.fontFamily)?.name || 'Arial')}
+                                </span>
+                                <svg className="w-4 h-4 ml-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                              </button>
+                              
+                              {getFontDropdownForField(index) && (
+                                <div className="font-dropdown absolute z-50 top-full left-0 right-0 mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg max-h-60 overflow-hidden">
+                                  {/* Search Input */}
+                                  <div className="p-2 border-b border-gray-600">
+                                    <input
+                                      type="text"
+                                      value={fontSearchTerm}
+                                      onChange={(e) => setFontSearchTerm(e.target.value)}
+                                      placeholder="Search fonts..."
+                                      className="w-full bg-gray-700 text-white px-2 py-1 rounded text-sm"
+                                      autoFocus
+                                    />
+                                  </div>
+                                  
+                                  {/* Font List */}
+                                  <div className="overflow-y-auto max-h-48">
+                                    {filteredFonts.length > 0 ? (
+                                      filteredFonts.map(font => (
+                                        <button
+                                          key={font.value}
+                                          type="button"
+                                          onClick={() => {
+                                            updateTextField(index, 'fontFamily', font.value);
+                                            closeFontDropdown();
+                                          }}
+                                          className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-700 transition-colors ${
+                                            field.fontFamily === font.value ? 'bg-emerald-600 text-white' : 'text-gray-300'
+                                          }`}
+                                          style={{ fontFamily: font.value }}
+                                        >
+                                          {font.name}
+                                        </button>
+                                      ))
+                                    ) : (
+                                      <div className="px-3 py-2 text-sm text-gray-400">
+                                        No fonts found
+                                      </div>
+                                    )}
+                                  </div>
+                                  
+                                  {/* Font Count */}
+                                  <div className="px-3 py-1 bg-gray-700 border-t border-gray-600 text-xs text-gray-400">
+                                    {filteredFonts.length} of {availableFonts.length} fonts
+                                    {fontDetectionMethod === 'api' && (
+                                      <span className="ml-2 text-emerald-400">• Full system access</span>
+                                    )}
+                                    {fontDetectionMethod === 'fallback' && (
+                                      <span className="ml-2 text-yellow-400">• Limited detection</span>
+                                    )}
+                                    {fontDetectionMethod === 'none' && (
+                                      <span className="ml-2 text-red-400">• Default fonts only</span>
+                                    )}
+                                    {isFontsLoading && (
+                                      <span className="ml-2 text-emerald-400">
+                                        • Detecting...
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
                           </div>
                           
                           {/* Text Color Controls */}
