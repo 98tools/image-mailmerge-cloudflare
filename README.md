@@ -8,7 +8,7 @@
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=flat&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 [![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers-F38020?style=flat&logo=cloudflare&logoColor=white)](https://workers.cloudflare.com/)
 
-A powerful, web-based image mail merge tool that allows you to create personalized images by combining templates with CSV data. Built with React and TypeScript, optimized for easy and fast deployment on **Cloudflare Workers**.
+A powerful, web-based image mail merge tool that allows you to create personalized images by combining templates with spreadsheet data. Built with React and TypeScript, optimized for easy and fast deployment on **Cloudflare Workers**.
 
 ## Screenshots
 <img width="1898" height="890" alt="image" src="https://github.com/user-attachments/assets/189129e4-7473-4849-b3c8-539fa9bf5031" />
@@ -19,12 +19,12 @@ A powerful, web-based image mail merge tool that allows you to create personaliz
 
 ## ✨ Features
 
-- 🎨 **Drag & Drop Interface** - Easy-to-use interface for uploading images and CSV files
-- 📊 **CSV Data Integration** - Import data from CSV files for batch processing
+- 🎨 **Drag & Drop Interface** - Easy-to-use interface for uploading images and spreadsheet files
+- 📊 **Spreadsheet Data Integration** - Import data from spreadsheet (CSV, XLS, XLSX, or ODS) files for batch processing
 - 🎯 **Visual Field Positioning** - Click to add, drag to move, scroll to resize text and QR codes
 - 🎭 **Rich Text Styling** - Multiple fonts, colors, text alignment, and markdown formatting
 - 🔤 **Automatic Font Detection** - Discovers all system fonts automatically (200+ fonts typically)
-- 📱 **QR Code Support** - Add dynamic QR codes with data from CSV columns
+- 📱 **QR Code Support** - Add dynamic QR codes with data from spreadsheet columns
 - 🔍 **Zoom & Pan Controls** - Navigate large images with precision
 - 📱 **Responsive Design** - Works seamlessly on desktop and mobile devices
 - 🚀 **Cloudflare Workers Ready** - Optimized for edge deployment
@@ -80,8 +80,8 @@ Deploy directly to Cloudflare Workers with one click:
    - Supported formats: JPG, PNG, GIF, WebP
    - Use zoom controls and middle-click to pan around large images
 
-2. **Upload CSV Data**
-   - Click "Choose CSV File" or drag and drop a CSV file
+2. **Upload Spreadsheet Data**
+   - Click "Choose Spreadsheet File" or drag and drop a spreadsheet file
    - First row should contain column headers
    - Data will be used to populate text fields and QR codes
 
@@ -97,10 +97,10 @@ Deploy directly to Cloudflare Workers with one click:
    - For QR codes: Set size, colors, and demo data
    - Use **markdown formatting** in text (bold: `**text**`, italic: `*text*`)
 
-5. **Map CSV Columns**
-   - Use dropdown menus to map CSV columns to your fields
+5. **Map Spreadsheet Columns**
+   - Use dropdown menus to map spreadsheet columns to your fields
    - Use preview navigation to see how different rows will look
-   - Set up file naming using CSV columns and/or numbering
+   - Set up file naming using spreadsheet columns and/or numbering
 
 6. **Generate Images**
    - Click "Generate All Images" to create personalized versions
@@ -184,7 +184,7 @@ We welcome contributions! Please follow these steps:
   - [ ] Custom font upload
 
 - [x] **QR Code Integration**
-  - [x] Dynamic QR code generation from CSV data
+  - [x] Dynamic QR code generation from spreadsheet data
   - [x] Customizable QR code size and colors
   - [x] Visual QR code positioning
 

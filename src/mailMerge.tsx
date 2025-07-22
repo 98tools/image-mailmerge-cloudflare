@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import Papa from 'papaparse';
+import * as XLSX from 'xlsx';
 import JSZip from 'jszip';
 import { QRCodeFieldData, QRCodeFieldEditor, drawQRCodeOnCanvas } from './components/QRCodeField';
 import { comprehensiveFontList , DEFAULT_FONT_OPTIONS} from './components/fontsList';
@@ -410,6 +411,84 @@ interface FileNameMapping {
   includeNumbering: boolean;
 }
 
+// Function to parse different spreadsheet formats
+const parseSpreadsheetFile = async (file: File): Promise<{
+  data: CSVRow[];
+  headers: string[];
+  error?: string;
+}> => {
+  const fileName = file.name.toLowerCase();
+  const fileExtension = fileName.split('.').pop();
+
+  try {
+    if (fileExtension === 'csv') {
+      // Use PapaParse for CSV files
+      return new Promise((resolve) => {
+        Papa.parse(file, {
+          header: true,
+          complete: (results) => {
+            const data = results.data as CSVRow[];
+            const headers = results.meta.fields || [];
+            resolve({ data, headers });
+          },
+          error: (error) => {
+            resolve({ data: [], headers: [], error: error.message });
+          }
+        });
+      });
+    } else if (['xls', 'xlsx', 'ods'].includes(fileExtension || '')) {
+      // Use XLSX for Excel and ODS files
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const arrayBuffer = e.target?.result as ArrayBuffer;
+            const uint8Array = new Uint8Array(arrayBuffer);
+            const workbook = XLSX.read(uint8Array, { type: 'array' });
+            
+            // Get the first worksheet
+            const worksheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[worksheetName];
+            
+            // Convert to JSON with headers
+            const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as string[][];
+            
+            if (jsonData.length === 0) {
+              resolve({ data: [], headers: [], error: 'Spreadsheet is empty' });
+              return;
+            }
+            
+            // First row contains headers
+            const headers = jsonData[0];
+            const rows = jsonData.slice(1);
+            
+            // Convert to CSVRow format
+            const parsedData: CSVRow[] = rows.map(row => {
+              const rowObject: CSVRow = {};
+              headers.forEach((header, index) => {
+                rowObject[header] = row[index] || '';
+              });
+              return rowObject;
+            });
+            
+            resolve({ data: parsedData, headers });
+          } catch (error) {
+            resolve({ data: [], headers: [], error: (error as Error).message });
+          }
+        };
+        reader.onerror = () => {
+          resolve({ data: [], headers: [], error: 'Failed to read file' });
+        };
+        reader.readAsArrayBuffer(file);
+      });
+    } else {
+      return { data: [], headers: [], error: `Unsupported file format: ${fileExtension}` };
+    }
+  } catch (error) {
+    return { data: [], headers: [], error: (error as Error).message };
+  }
+};
+
 const MailMerge: React.FC = () => {
   // State
   const [templateImage, setTemplateImage] = useState<File | null>(null);
@@ -626,50 +705,52 @@ const MailMerge: React.FC = () => {
     img.src = imageUrl;
   }, []);
 
-  // Handle CSV upload
-  const handleCsvUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle spreadsheet file upload (CSV, XLS, XLSX, ODS)
+  const handleSpreadsheetUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || file.size === 0) {
-      alert('Please select a CSV file');
+      alert('Please select a spreadsheet file');
       return;
     }
 
-    console.log('CSV file selected:', file.name, file.size);
+    console.log('Spreadsheet file selected:', file.name, file.size);
     
-    Papa.parse(file, {
-      header: true,
-      complete: (results) => {
-        console.log('CSV parsed:', results);
-        const data = results.data as CSVRow[];
-        const headers = results.meta.fields || [];
-        console.log('CSV headers:', headers);
-        console.log('CSV data rows:', data.length);
-        
-        // Filter out empty rows
-        const filteredData = data.filter(row => {
-          return Object.values(row).some(value => value && value.trim() !== '');
-        });
-        
-        setCsvData(filteredData);
-        setCsvHeaders(headers);
-        setCurrentCsvRowIndex(0); // Reset to first row
-        
-        console.log('Filtered CSV data:', filteredData.length, 'rows');
-        
-        // Initialize empty field mappings for existing fields
-        if (fields.length > 0) {
-          const mappings = fields.map(field => ({
-            fieldName: field.name,
-            csvColumn: null
-          }));
-          setFieldMappings(mappings);
-        }
-      },
-      error: (error) => {
-        console.error('CSV parse error:', error);
-        alert('Error parsing CSV: ' + error.message);
+    try {
+      const result = await parseSpreadsheetFile(file);
+      
+      if (result.error) {
+        console.error('Spreadsheet parse error:', result.error);
+        alert('Error parsing spreadsheet: ' + result.error);
+        return;
       }
-    });
+
+      console.log('Spreadsheet parsed:', result);
+      console.log('Headers:', result.headers);
+      console.log('Data rows:', result.data.length);
+      
+      // Filter out empty rows
+      const filteredData = result.data.filter(row => {
+        return Object.values(row).some(value => value && value.trim() !== '');
+      });
+      
+      setCsvData(filteredData);
+      setCsvHeaders(result.headers);
+      setCurrentCsvRowIndex(0); // Reset to first row
+      
+      console.log('Filtered data:', filteredData.length, 'rows');
+      
+      // Initialize empty field mappings for existing fields
+      if (fields.length > 0) {
+        const mappings = fields.map(field => ({
+          fieldName: field.name,
+          csvColumn: null
+        }));
+        setFieldMappings(mappings);
+      }
+    } catch (error) {
+      console.error('Spreadsheet processing error:', error);
+      alert('Error processing spreadsheet: ' + (error as Error).message);
+    }
   }, [fields]);
 
   // Add field at position - now shows modal for field type selection
@@ -1999,13 +2080,13 @@ const MailMerge: React.FC = () => {
               </div>
             )}
 
-            {/* CSV Upload Section */}
+            {/* Spreadsheet Upload Section */}
             <div className="bg-gray-700/50 rounded-lg p-4">
               <div className="flex items-center mb-4">
                 <div className="w-8 h-8 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center text-white font-bold text-sm mr-3">
                   3
                 </div>
-                <h3 className="text-lg font-semibold text-white">CSV Data</h3>
+                <h3 className="text-lg font-semibold text-white">Spreadsheet Data</h3>
               </div>
               
               <div>
@@ -2014,16 +2095,16 @@ const MailMerge: React.FC = () => {
                     <svg className="w-12 h-12 text-orange-400 mx-auto mb-3 group-hover:text-orange-300 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                     </svg>
-                    <span className="text-orange-300 font-medium">Upload CSV</span>
-                    <p className="text-xs text-orange-400 mt-1">Data for merge fields</p>
+                    <span className="text-orange-300 font-medium">Upload Spreadsheet</span>
+                    <p className="text-xs text-orange-400 mt-1">CSV, XLS, XLSX, or ODS files</p>
                   </div>
                 </label>
                 <input 
                   type="file" 
                   id="csvFile" 
-                  accept=".csv" 
+                  accept=".csv,.xls,.xlsx,.ods" 
                   className="hidden" 
-                  onChange={handleCsvUpload}
+                  onChange={handleSpreadsheetUpload}
                 />
               </div>
               
@@ -2130,7 +2211,7 @@ const MailMerge: React.FC = () => {
                 </div>
                 
                 <div className="bg-purple-500/10 border border-purple-400/30 rounded-lg p-3 mb-4">
-                  <p className="text-purple-300 text-sm">Map your template fields to CSV columns. Unmapped fields will be left empty.</p>
+                  <p className="text-purple-300 text-sm">Map your template fields to spreadsheet columns. Unmapped fields will be left empty.</p>
                 </div>
                 
                 <div className="space-y-3 mb-4">
@@ -2172,7 +2253,7 @@ const MailMerge: React.FC = () => {
                       </div>
                     )}
                     <p className="text-xs text-indigo-400 mt-2">
-                      Optional: Select a CSV column to use custom file names. Files will be automatically saved as .png
+                      Optional: Select a spreadsheet column to use custom file names. Files will be automatically saved as .png
                       {fileNameMapping.csvColumn && !fileNameMapping.includeNumbering && (
                         <span className="block mt-1 text-yellow-400">⚠️ Without numbering, duplicate filenames will overwrite each other</span>
                       )}
@@ -2333,7 +2414,7 @@ const MailMerge: React.FC = () => {
                   </svg>
                   <div>
                     <div className="font-medium">QR Code Field</div>
-                    <div className="text-sm text-green-200">Generate QR codes from CSV data</div>
+                    <div className="text-sm text-green-200">Generate QR codes from spreadsheet data</div>
                   </div>
                 </div>
               </button>
