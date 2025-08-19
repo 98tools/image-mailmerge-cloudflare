@@ -1,7 +1,7 @@
 
 # Image Mail Merge
 
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/98tools/image-mailmerge-98-cloudflare)
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/98tools/image-mailmerge-cloudflare)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-20232A?style=flat&logo=react&logoColor=61DAFB)](https://reactjs.org/)
@@ -38,13 +38,13 @@ A powerful, web-based image mail merge tool that allows you to create personaliz
 
 Deploy directly to Cloudflare Workers with one click:
 
-[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/98tools/image-mailmerge-98-cloudflare)
+[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/98tools/image-mailmerge-cloudflare)
 
 ### Local Development
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/98tools/image-mailmerge-98-cloudflare.git
+   git clone https://github.com/98tools/image-mailmerge-cloudflare.git
    cd image-mailmerge-cloudflare
    ```
 
@@ -121,7 +121,7 @@ Deploy directly to Cloudflare Workers with one click:
 ## 🚀 Deployment
 
 ### Method 1: Deploy to Cloudflare Workers with one click
-[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/98tools/image-mailmerge-98-cloudflare)
+[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/98tools/image-mailmerge-cloudflare)
 
 ### Method 2: Deploy to Cloudflare Workers manually
 
@@ -206,7 +206,7 @@ We welcome contributions! Please follow these steps:
 
 ## 🐛 Bug Reports & Feature Requests
 
-Found a bug or have a feature request? Please create an issue on [GitHub Issues](https://github.com/98tools/image-mailmerge-98-cloudflare/issues).
+Found a bug or have a feature request? Please create an issue on [GitHub Issues](https://github.com/98tools/image-mailmerge-cloudflare/issues).
 
 ## 📄 License
 
@@ -225,8 +225,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 <div align="center">
   <p>Made with ❤️ by <a href="https://github.com/98tools">98 Tools</a></p>
   <p>
-    <a href="https://github.com/98tools/image-mailmerge-98-cloudflare/stargazers">⭐ Star this project</a> •
-    <a href="https://github.com/98tools/image-mailmerge-98-cloudflare/issues">🐛 Report Bug</a> •
-    <a href="https://github.com/98tools/image-mailmerge-98-cloudflare/pulls">🔧 Request Feature</a>
+    <a href="https://github.com/98tools/image-mailmerge-cloudflare/stargazers">⭐ Star this project</a> •
+    <a href="https://github.com/98tools/image-mailmerge-cloudflare/issues">🐛 Report Bug</a> •
+    <a href="https://github.com/98tools/image-mailmerge-cloudflare/pulls">🔧 Request Feature</a>
   </p>
 </div>
