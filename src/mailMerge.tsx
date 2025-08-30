@@ -489,7 +489,7 @@ const parseSpreadsheetFile = async (file: File): Promise<{
   }
 };
 
-const MailMerge: React.FC = () => {
+const ImageMailMerge: React.FC = () => {
   // State
   const [templateImage, setTemplateImage] = useState<File | null>(null);
   const [csvData, setCsvData] = useState<CSVRow[] | null>(null);
@@ -2435,7 +2435,7 @@ const MailMerge: React.FC = () => {
   );
 };
 
-export default MailMerge;
+export default ImageMailMerge;
 
 // Function to parse markdown-like text and apply formatting
 const parseMarkdownText = (text: string) => {
