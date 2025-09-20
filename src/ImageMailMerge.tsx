@@ -1293,7 +1293,7 @@ const ImageMailMerge: React.FC = () => {
                 <div className="space-y-3 mb-4">
                   {fields.map((field, index) => (
                     <div key={index} className={`p-3 rounded-lg border ${selectedFieldIndex === index ? 'border-blue-500 bg-blue-50' : 'border-gray-300 bg-gray-50'}`}>
-                      <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center mb-2">
                         <input
                           type="text"
                           value={field.name}
@@ -1301,19 +1301,21 @@ const ImageMailMerge: React.FC = () => {
                           placeholder="Field Name"
                           className="bg-white border border-gray-300 text-gray-900 px-2 py-1 rounded text-sm flex-1 mr-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         />
-                        <span className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded mr-2">
+                        <span className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded mr-2 flex-shrink-0">
                           {field.type === 'text' ? 'Text' : 'QR'}
                         </span>
-                        <div className="flex gap-1">
+                      </div>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex gap-1 flex-shrink-0">
                           <button
                             onClick={() => setSelectedFieldIndex(index)}
-                            className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded transition-colors"
+                            className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded transition-colors whitespace-nowrap"
                           >
                             Select
                           </button>
                           <button
                             onClick={() => removeField(index)}
-                            className="bg-red-600 hover:bg-red-700 text-white p-1 rounded transition-colors"
+                            className="bg-red-600 hover:bg-red-700 text-white p-1 rounded transition-colors flex-shrink-0"
                             title="Delete Field"
                           >
                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
