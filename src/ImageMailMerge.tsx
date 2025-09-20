@@ -1153,18 +1153,18 @@ const ImageMailMerge: React.FC = () => {
       )}
 
       {/* Main Layout */}
-      <div ref={mainLayoutRef} className="flex h-full">
+      <div ref={mainLayoutRef} className="flex h-full bg-white">
         {/* Sidebar */}
         <div 
-          className="bg-gray-800 border-r border-gray-700 flex flex-col overflow-y-auto transition-all duration-300"
+          className="bg-white border-r border-gray-200 flex flex-col overflow-y-auto transition-all duration-300"
           style={{ width: sidebarWidth, minWidth: 300, maxWidth: 600 }}
         >
-          <div className="p-4 border-b border-gray-700">
+          <div className="p-4 border-b border-gray-200">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-200 flex items-center">
+              <h2 className="text-lg font-semibold text-gray-900 flex items-center">
                 Options
                 {isFullscreen && (
-                  <span className="ml-2 px-2 py-1 bg-purple-600 text-white text-xs rounded-full">
+                  <span className="ml-2 px-2 py-1 bg-blue-600 text-white text-xs rounded-full">
                     Fullscreen Mode
                   </span>
                 )}
@@ -1172,7 +1172,7 @@ const ImageMailMerge: React.FC = () => {
               <button 
                 onClick={toggleFullscreen} 
                 title={isFullscreen ? "Exit Fullscreen (F11)" : "Enter Fullscreen (F11)"} 
-                className="bg-gray-700 hover:bg-gray-600 text-white p-2 rounded-lg transition-colors"
+                className="bg-gray-100 hover:bg-gray-50 text-gray-700 p-2 rounded-lg transition-colors border border-gray-300"
               >
                 {isFullscreen ? (
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1189,22 +1189,22 @@ const ImageMailMerge: React.FC = () => {
           
           <div className="flex-1 p-4 space-y-6 mb-20">
             {/* Image Upload Section */}
-            <div className="bg-gray-700/50 rounded-lg p-4">
+            <div className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-all duration-300">
               <div className="flex items-center mb-4">
                 <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full flex items-center justify-center text-white font-bold text-sm mr-3">
                   1
                 </div>
-                <h3 className="text-lg font-semibold text-white">Template Image</h3>
+                <h3 className="text-lg font-semibold text-gray-900">Template Image</h3>
               </div>
               
               <div>
                 <label htmlFor="imageFile" className="cursor-pointer block">
-                  <div className="border-2 border-dashed border-blue-400/50 rounded-lg p-6 text-center bg-blue-500/10 hover:bg-blue-500/20 transition-all duration-300 group">
-                    <svg className="w-12 h-12 text-blue-400 mx-auto mb-3 group-hover:text-blue-300 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="border-2 border-dashed border-blue-300 rounded-lg p-6 text-center bg-blue-50 hover:bg-blue-100 transition-all duration-300 group">
+                    <svg className="w-12 h-12 text-blue-500 mx-auto mb-3 group-hover:text-blue-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                     </svg>
-                    <span className="text-blue-300 font-medium">Upload Image</span>
-                    <p className="text-xs text-blue-400 mt-1">PNG, JPG, GIF up to 10MB</p>
+                    <span className="text-blue-600 font-medium">Upload Image</span>
+                    <p className="text-xs text-blue-500 mt-1">PNG, JPG, GIF up to 10MB</p>
                   </div>
                 </label>
                 <input 
@@ -1221,17 +1221,17 @@ const ImageMailMerge: React.FC = () => {
 
             {/* Field Definition Section */}
             {showFieldDefinition && (
-              <div className="bg-gray-700/50 rounded-lg p-4">
+              <div className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-all duration-300">
                 <div className="flex items-center mb-4">
                   <div className="w-8 h-8 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full flex items-center justify-center text-white font-bold text-sm mr-3">
                     2
                   </div>
-                  <h3 className="text-lg font-semibold text-white">Text Fields</h3>
+                  <h3 className="text-lg font-semibold text-gray-900">Text Fields</h3>
                 </div>
                 
-                <div className="bg-emerald-500/10 border border-emerald-400/30 rounded-lg p-3 mb-4">
-                  <p className="text-emerald-300 text-sm">Click on the preview to add text fields. Use demo text to preview positioning. Drag fields to move, scroll over fields to resize.</p>
-                  <div className="mt-2 text-xs text-emerald-200">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                  <p className="text-blue-700 text-sm">Click on the preview to add text fields. Use demo text to preview positioning. Drag fields to move, scroll over fields to resize.</p>
+                  <div className="mt-2 text-xs text-blue-600">
                     <p className="font-medium mb-1">Text Formatting (Markdown-style):</p>
                     <div className="space-y-1">
                       <p>• <strong>**Bold text**</strong> - Use double asterisks</p>
@@ -1241,7 +1241,7 @@ const ImageMailMerge: React.FC = () => {
                     </div>
                   </div>
                   {isFontsLoading && (
-                    <div className="mt-3 flex items-center text-emerald-300 text-sm">
+                    <div className="mt-3 flex items-center text-blue-600 text-sm">
                       <svg className="animate-spin w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
                       </svg>
@@ -1250,14 +1250,14 @@ const ImageMailMerge: React.FC = () => {
                   )}
                   {fontsLoaded && !isFontsLoading && (
                     <div className="mt-3 space-y-2">
-                      <div className="text-emerald-300 text-sm">
+                      <div className="text-blue-600 text-sm">
                         ✓ Found {availableFonts.length} fonts 
-                        {fontDetectionMethod === 'api' && <span className="text-emerald-400 ml-1">(Full access)</span>}
-                        {fontDetectionMethod === 'fallback' && <span className="text-yellow-400 ml-1">(Limited)</span>}
-                        {fontDetectionMethod === 'none' && <span className="text-red-400 ml-1">(Default only)</span>}
+                        {fontDetectionMethod === 'api' && <span className="text-blue-700 ml-1">(Full access)</span>}
+                        {fontDetectionMethod === 'fallback' && <span className="text-orange-600 ml-1">(Limited)</span>}
+                        {fontDetectionMethod === 'none' && <span className="text-red-600 ml-1">(Default only)</span>}
                       </div>
                       {fontDetectionMethod === 'fallback' && (
-                        <div className="text-xs text-yellow-300 bg-yellow-500/10 border border-yellow-400/30 rounded p-2">
+                        <div className="text-xs text-orange-700 bg-orange-50 border border-orange-200 rounded p-2">
                           Enhanced font detection active. Using fallback method to detect {availableFonts.length} fonts.
                           {(() => {
                             const isChrome = navigator.userAgent.includes('Chrome');
@@ -1272,7 +1272,7 @@ const ImageMailMerge: React.FC = () => {
                             
                             if (!hasCompatibleBrowser) {
                               return (
-                                <div className="mt-2 text-blue-300">
+                                <div className="mt-2 text-blue-700">
                                   💡 For access to all system fonts, upgrade to Chrome 103+ or Edge 103+
                                 </div>
                               );
@@ -1282,7 +1282,7 @@ const ImageMailMerge: React.FC = () => {
                         </div>
                       )}
                       {fontDetectionMethod === 'none' && (
-                        <div className="text-xs text-red-300 bg-red-500/10 border border-red-400/30 rounded p-2">
+                        <div className="text-xs text-red-700 bg-red-50 border border-red-200 rounded p-2">
                           Font detection failed. Using default fonts only. Try "Reload" or upgrade your browser.
                         </div>
                       )}
@@ -1292,28 +1292,28 @@ const ImageMailMerge: React.FC = () => {
                 
                 <div className="space-y-3 mb-4">
                   {fields.map((field, index) => (
-                    <div key={index} className={`p-3 rounded-lg border ${selectedFieldIndex === index ? 'border-emerald-400 bg-emerald-500/20' : 'border-gray-600 bg-gray-600/50'}`}>
+                    <div key={index} className={`p-3 rounded-lg border ${selectedFieldIndex === index ? 'border-blue-500 bg-blue-50' : 'border-gray-300 bg-gray-50'}`}>
                       <div className="flex items-center justify-between mb-2">
                         <input
                           type="text"
                           value={field.name}
                           onChange={(e) => updateField(index, 'name', e.target.value)}
                           placeholder="Field Name"
-                          className="bg-gray-700 text-white px-2 py-1 rounded text-sm flex-1 mr-2"
+                          className="bg-white border border-gray-300 text-gray-900 px-2 py-1 rounded text-sm flex-1 mr-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         />
-                        <span className="text-xs bg-gray-600 px-2 py-1 rounded mr-2">
+                        <span className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded mr-2">
                           {field.type === 'text' ? 'Text' : 'QR'}
                         </span>
                         <div className="flex gap-1">
                           <button
                             onClick={() => setSelectedFieldIndex(index)}
-                            className="text-xs bg-blue-500 hover:bg-blue-600 px-2 py-1 rounded"
+                            className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded transition-colors"
                           >
                             Select
                           </button>
                           <button
                             onClick={() => removeField(index)}
-                            className="bg-red-500 hover:bg-red-600 text-white p-1 rounded transition-colors"
+                            className="bg-red-600 hover:bg-red-700 text-white p-1 rounded transition-colors"
                             title="Delete Field"
                           >
                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1327,7 +1327,7 @@ const ImageMailMerge: React.FC = () => {
                         value={field.demoText}
                         onChange={(e) => updateField(index, 'demoText', e.target.value)}
                         placeholder="Demo text"
-                        className="bg-gray-700 text-white px-2 py-1 rounded text-sm w-full mb-2"
+                        className="bg-white border border-gray-300 text-gray-900 px-2 py-1 rounded text-sm w-full mb-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       />
                       
                       {field.type === 'text' ? (
@@ -1339,14 +1339,14 @@ const ImageMailMerge: React.FC = () => {
                               value={field.fontSize}
                               onChange={(e) => updateTextField(index, 'fontSize', parseInt(e.target.value))}
                               placeholder="Font Size"
-                              className="bg-gray-700 text-white px-2 py-1 rounded text-sm"
+                              className="bg-white border border-gray-300 text-gray-900 px-2 py-1 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                             />
                             {/* Font Dropdown with Search */}
                             <div className="relative">
                               <button
                                 type="button"
                                 onClick={() => toggleFontDropdown(index)}
-                                className="font-dropdown-trigger w-full bg-gray-700 text-white px-2 py-1 rounded text-sm text-left flex items-center justify-between hover:bg-gray-600 transition-colors"
+                                className="font-dropdown-trigger w-full bg-white border border-gray-300 text-gray-900 px-2 py-1 rounded text-sm text-left flex items-center justify-between hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                 disabled={isFontsLoading}
                               >
                                 <span className="truncate">
@@ -1359,15 +1359,15 @@ const ImageMailMerge: React.FC = () => {
                               </button>
                               
                               {getFontDropdownForField(index) && (
-                                <div className="font-dropdown absolute z-50 top-full left-0 right-0 mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg max-h-60 overflow-hidden">
+                                <div className="font-dropdown absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-hidden">
                                   {/* Search Input */}
-                                  <div className="p-2 border-b border-gray-600">
+                                  <div className="p-2 border-b border-gray-200">
                                     <input
                                       type="text"
                                       value={fontSearchTerm}
                                       onChange={(e) => setFontSearchTerm(e.target.value)}
                                       placeholder="Search fonts..."
-                                      className="w-full bg-gray-700 text-white px-2 py-1 rounded text-sm"
+                                      className="w-full bg-white border border-gray-300 text-gray-900 px-2 py-1 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                       autoFocus
                                     />
                                   </div>
@@ -1383,8 +1383,8 @@ const ImageMailMerge: React.FC = () => {
                                             updateTextField(index, 'fontFamily', font.value);
                                             closeFontDropdown();
                                           }}
-                                          className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-700 transition-colors ${
-                                            field.fontFamily === font.value ? 'bg-emerald-600 text-white' : 'text-gray-300'
+                                          className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 transition-colors ${
+                                            field.fontFamily === font.value ? 'bg-blue-600 text-white' : 'text-gray-700'
                                           }`}
                                           style={{ fontFamily: font.value }}
                                         >
@@ -1392,26 +1392,26 @@ const ImageMailMerge: React.FC = () => {
                                         </button>
                                       ))
                                     ) : (
-                                      <div className="px-3 py-2 text-sm text-gray-400">
+                                      <div className="px-3 py-2 text-sm text-gray-500">
                                         No fonts found
                                       </div>
                                     )}
                                   </div>
                                   
                                   {/* Font Count */}
-                                  <div className="px-3 py-1 bg-gray-700 border-t border-gray-600 text-xs text-gray-400">
+                                  <div className="px-3 py-1 bg-gray-50 border-t border-gray-200 text-xs text-gray-600">
                                     {filteredFonts.length} of {availableFonts.length} fonts
                                     {fontDetectionMethod === 'api' && (
-                                      <span className="ml-2 text-emerald-400">• Full system access</span>
+                                      <span className="ml-2 text-green-600">• Full system access</span>
                                     )}
                                     {fontDetectionMethod === 'fallback' && (
-                                      <span className="ml-2 text-yellow-400">• Limited detection</span>
+                                      <span className="ml-2 text-orange-600">• Limited detection</span>
                                     )}
                                     {fontDetectionMethod === 'none' && (
-                                      <span className="ml-2 text-red-400">• Default fonts only</span>
+                                      <span className="ml-2 text-red-600">• Default fonts only</span>
                                     )}
                                     {isFontsLoading && (
-                                      <span className="ml-2 text-emerald-400">
+                                      <span className="ml-2 text-green-600">
                                         • Detecting...
                                       </span>
                                     )}
@@ -1423,26 +1423,26 @@ const ImageMailMerge: React.FC = () => {
                           
                           {/* Text Color Controls */}
                           <div>
-                            <label className="block text-emerald-300 text-xs font-medium mb-2">Text Color</label>
+                            <label className="block text-gray-700 text-xs font-medium mb-2">Text Color</label>
                             <div className="space-y-2">
                               <div className="flex flex-wrap gap-1">
                                 {COLOR_PRESETS.map(color => (
                                   <button
                                     key={color.value}
                                     onClick={() => updateField(index, 'color', color.value)}
-                                    className={`w-6 h-6 rounded border-2 ${field.color === color.value ? 'border-white' : 'border-gray-400'} hover:border-white transition-colors`}
+                                    className={`w-6 h-6 rounded border-2 ${field.color === color.value ? 'border-gray-800' : 'border-gray-300'} hover:border-gray-800 transition-colors`}
                                     style={{ backgroundColor: color.value }}
                                     title={color.name}
                                   />
                                 ))}
                               </div>
                               <details className="mt-2">
-                                <summary className="text-xs text-gray-400 cursor-pointer hover:text-gray-300">Custom Color</summary>
+                                <summary className="text-xs text-gray-600 cursor-pointer hover:text-gray-800">Custom Color</summary>
                                 <input
                                   type="color"
                                   value={field.color}
                                   onChange={(e) => updateField(index, 'color', e.target.value)}
-                                  className="w-full h-8 bg-gray-700/50 border border-gray-500 rounded cursor-pointer mt-1"
+                                  className="w-full h-8 bg-white border border-gray-300 rounded cursor-pointer mt-1"
                                 />
                               </details>
                             </div>
@@ -1450,14 +1450,14 @@ const ImageMailMerge: React.FC = () => {
 
                           {/* Text Alignment Controls */}
                           <div className="mt-3">
-                            <label className="block text-emerald-300 text-xs font-medium mb-2">Text Alignment</label>
+                            <label className="block text-gray-700 text-xs font-medium mb-2">Text Alignment</label>
                             <div className="flex gap-2">
                               {TEXT_ALIGN_OPTIONS.map(option => (
                                 <button
                                   key={option.value}
                                   onClick={() => updateTextField(index, 'textAlign', option.value)}
                                   className={`flex-1 px-3 py-1 rounded-lg text-sm font-medium transition-all flex items-center justify-center
-                                    ${field.textAlign === option.value ? 'bg-emerald-500 text-white' : 'bg-gray-700 text-emerald-300 hover:bg-emerald-600'}
+                                    ${field.textAlign === option.value ? 'bg-blue-600 text-white' : 'bg-gray-100 text-blue-600 hover:bg-blue-100 border border-gray-300'}
                                   `}
                                   title={option.name}
                                 >
@@ -1484,7 +1484,7 @@ const ImageMailMerge: React.FC = () => {
                 
                 <button 
                   onClick={clearFields}
-                  className="w-full bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-3 rounded-lg transition-colors text-sm"
+                  className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-3 rounded-lg transition-colors text-sm shadow-md"
                 >
                   Clear All
                 </button>
@@ -1492,22 +1492,22 @@ const ImageMailMerge: React.FC = () => {
             )}
 
             {/* Spreadsheet Upload Section */}
-            <div className="bg-gray-700/50 rounded-lg p-4">
+            <div className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-all duration-300">
               <div className="flex items-center mb-4">
                 <div className="w-8 h-8 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center text-white font-bold text-sm mr-3">
                   3
                 </div>
-                <h3 className="text-lg font-semibold text-white">Spreadsheet Data</h3>
+                <h3 className="text-lg font-semibold text-gray-900">Spreadsheet Data</h3>
               </div>
               
               <div>
                 <label htmlFor="csvFile" className="cursor-pointer block">
-                  <div className="border-2 border-dashed border-orange-400/50 rounded-lg p-6 text-center bg-orange-500/10 hover:bg-orange-500/20 transition-all duration-300 group">
-                    <svg className="w-12 h-12 text-orange-400 mx-auto mb-3 group-hover:text-orange-300 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="border-2 border-dashed border-orange-300 rounded-lg p-6 text-center bg-orange-50 hover:bg-orange-100 transition-all duration-300 group">
+                    <svg className="w-12 h-12 text-orange-500 mx-auto mb-3 group-hover:text-orange-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                     </svg>
-                    <span className="text-orange-300 font-medium">Upload Spreadsheet</span>
-                    <p className="text-xs text-orange-400 mt-1">CSV, XLS, XLSX, or ODS files</p>
+                    <span className="text-orange-600 font-medium">Upload Spreadsheet</span>
+                    <p className="text-xs text-orange-500 mt-1">CSV, XLS, XLSX, or ODS files</p>
                   </div>
                 </label>
                 <input 
@@ -1520,9 +1520,9 @@ const ImageMailMerge: React.FC = () => {
               </div>
               
               {csvData && (
-                <div className="mt-4 bg-gray-600/50 border border-gray-500 rounded-lg p-3">
+                <div className="mt-4 bg-gray-50 border border-gray-200 rounded-lg p-3">
                   <div className="flex items-center justify-between mb-3">
-                    <h4 className="text-sm font-semibold text-white flex items-center">
+                    <h4 className="text-sm font-semibold text-gray-900 flex items-center">
                       <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                       </svg>
@@ -1535,7 +1535,7 @@ const ImageMailMerge: React.FC = () => {
                       <button
                         onClick={goToPreviousRow}
                         disabled={currentCsvRowIndex === 0}
-                        className="p-1 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed text-white"
+                        className="p-1 rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 border border-gray-300"
                         title="Previous Row"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1543,14 +1543,14 @@ const ImageMailMerge: React.FC = () => {
                         </svg>
                       </button>
                       
-                      <span className="text-xs text-gray-300 min-w-[60px] text-center">
+                      <span className="text-xs text-gray-600 min-w-[60px] text-center">
                         Row {currentCsvRowIndex + 1} of {csvData.length}
                       </span>
                       
                       <button
                         onClick={goToNextRow}
                         disabled={currentCsvRowIndex === csvData.length - 1}
-                        className="p-1 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed text-white"
+                        className="p-1 rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 border border-gray-300"
                         title="Next Row"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1562,7 +1562,7 @@ const ImageMailMerge: React.FC = () => {
 
                   {/* Warning for unmapped fields */}
                   {fields.length > 0 && getUnmappedFields().length > 0 && (
-                    <div className="mb-3 p-2 bg-yellow-500/10 border border-yellow-400/30 rounded text-yellow-300 text-xs">
+                    <div className="mb-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-yellow-700 text-xs">
                       <div className="flex items-center">
                         <svg className="w-4 h-4 mr-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.268 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
@@ -1577,20 +1577,20 @@ const ImageMailMerge: React.FC = () => {
                   )}
 
                   {/* Current Row Data Display */}
-                  <div className="bg-gray-700 rounded overflow-hidden">
+                  <div className="bg-white border border-gray-200 rounded overflow-hidden">
                     <div className="overflow-x-auto">
                       <table className="w-full text-xs">
-                        <thead className="bg-gray-800">
+                        <thead className="bg-gray-100">
                           <tr>
                             {csvHeaders.map(header => (
-                              <th key={header} className="px-2 py-1 text-left text-gray-300 font-medium">{header}</th>
+                              <th key={header} className="px-2 py-1 text-left text-gray-700 font-medium">{header}</th>
                             ))}
                           </tr>
                         </thead>
-                        <tbody className="text-gray-200">
-                          <tr className="border-b border-gray-600 bg-blue-500/10">
+                        <tbody className="text-gray-800">
+                          <tr className="border-b border-gray-200 bg-blue-50">
                             {csvHeaders.map(header => (
-                              <td key={header} className="px-2 py-1 font-medium text-blue-200">
+                              <td key={header} className="px-2 py-1 font-medium text-blue-700">
                                 {getCurrentRowData()?.[header] || ''}
                               </td>
                             ))}
@@ -1601,7 +1601,7 @@ const ImageMailMerge: React.FC = () => {
                   </div>
 
                   {/* Show preview tip */}
-                  <div className="mt-2 text-xs text-gray-400 flex items-center">
+                  <div className="mt-2 text-xs text-gray-600 flex items-center">
                     <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>
@@ -1613,34 +1613,34 @@ const ImageMailMerge: React.FC = () => {
 
             {/* Field Mapping Section */}
             {csvData && fields.length > 0 && (
-              <div className="bg-gray-700/50 rounded-lg p-4">
+              <div className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-all duration-300">
                 <div className="flex items-center mb-4">
                   <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full flex items-center justify-center text-white font-bold text-sm mr-3">
                     4
                   </div>
-                  <h3 className="text-lg font-semibold text-white">Field Mapping</h3>
+                  <h3 className="text-lg font-semibold text-gray-900">Field Mapping</h3>
                 </div>
                 
-                <div className="bg-purple-500/10 border border-purple-400/30 rounded-lg p-3 mb-4">
-                  <p className="text-purple-300 text-sm">Map your template fields to spreadsheet columns. Unmapped fields will be left empty.</p>
+                <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 mb-4">
+                  <p className="text-purple-700 text-sm">Map your template fields to spreadsheet columns. Unmapped fields will be left empty.</p>
                 </div>
                 
                 <div className="space-y-3 mb-4">
                   {/* File Name Mapping */}
-                  <div className="bg-indigo-500/10 border border-indigo-400/30 rounded-lg p-3 mb-3">
+                  <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-3 mb-3">
                     <div className="flex items-center space-x-2 mb-2">
-                      <svg className="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
                       </svg>
-                      <span className="text-sm font-medium text-indigo-300">Custom File Names</span>
+                      <span className="text-sm font-medium text-indigo-700">Custom File Names</span>
                     </div>
                     <div className="flex items-center space-x-2 mb-3">
-                      <span className="text-sm text-gray-300 min-w-[80px]">file_name:</span>
+                      <span className="text-sm text-gray-700 min-w-[80px]">file_name:</span>
                       <div className="flex-1 min-w-0">
                         <select
                           value={fileNameMapping.csvColumn || ''}
                           onChange={(e) => updateFileNameMapping(e.target.value)}
-                          className="bg-gray-700 text-white px-2 py-1 rounded text-sm w-full"
+                          className="bg-white border border-gray-300 text-gray-900 px-2 py-1 rounded text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         >
                           <option value="">-- Use Default (image_0001.png) --</option>
                           {csvHeaders.map(header => (
@@ -1656,17 +1656,17 @@ const ImageMailMerge: React.FC = () => {
                           id="includeNumbering"
                           checked={fileNameMapping.includeNumbering}
                           onChange={(e) => updateFileNameNumbering(e.target.checked)}
-                          className="w-4 h-4 text-indigo-600 bg-gray-700 border-gray-600 rounded focus:ring-indigo-500 focus:ring-2"
+                          className="w-4 h-4 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
                         />
-                        <label htmlFor="includeNumbering" className="text-sm text-gray-300">
+                        <label htmlFor="includeNumbering" className="text-sm text-gray-700">
                           Include numbering prefix (0001_filename.png)
                         </label>
                       </div>
                     )}
-                    <p className="text-xs text-indigo-400 mt-2">
+                    <p className="text-xs text-indigo-600 mt-2">
                       Optional: Select a spreadsheet column to use custom file names. Files will be automatically saved as .png
                       {fileNameMapping.csvColumn && !fileNameMapping.includeNumbering && (
-                        <span className="block mt-1 text-yellow-400">⚠️ Without numbering, duplicate filenames will overwrite each other</span>
+                        <span className="block mt-1 text-orange-600">⚠️ Without numbering, duplicate filenames will overwrite each other</span>
                       )}
                     </p>
                   </div>
@@ -1674,11 +1674,11 @@ const ImageMailMerge: React.FC = () => {
                   {/* Field Mappings */}
                   {fieldMappings.map((mapping, index) => (
                     <div key={index} className="flex items-center space-x-2">
-                      <span className="text-sm text-gray-300 min-w-[80px]">{mapping.fieldName}:</span>
+                      <span className="text-sm text-gray-700 min-w-[80px]">{mapping.fieldName}:</span>
                       <select
                         value={mapping.csvColumn || ''}
                         onChange={(e) => updateFieldMapping(mapping.fieldName, e.target.value)}
-                        className="bg-gray-700 text-white px-2 py-1 rounded text-sm flex-1"
+                        className="bg-white border border-gray-300 text-gray-900 px-2 py-1 rounded text-sm flex-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       >
                         <option value="">-- Select Column --</option>
                         {csvHeaders.map(header => (
@@ -1692,7 +1692,7 @@ const ImageMailMerge: React.FC = () => {
                 <div className="flex justify-center">
                   <button 
                     onClick={clearFieldMapping}
-                    className="bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors text-sm"
+                    className="bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors text-sm shadow-md"
                   >
                     Clear All Mappings
                   </button>
@@ -1701,28 +1701,28 @@ const ImageMailMerge: React.FC = () => {
             )}
 
             {/* Generate Images Section */}
-            <div className="bg-gray-700/50 rounded-lg p-4">
+            <div className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-all duration-300">
               <div className="flex items-center mb-4">
                 <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold text-sm mr-3">
                   5
                 </div>
-                <h3 className="text-lg font-semibold text-white">Generate Images</h3>
+                <h3 className="text-lg font-semibold text-gray-900">Generate Images</h3>
               </div>
 
               {/* Progress Bar */}
               {isProcessing && (
-                <div className="bg-gray-600/50 border border-gray-500 rounded-lg p-3 mb-4">
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-4">
                   <div className="flex items-center mb-2">
-                    <span className="text-sm text-gray-300">Generating Images...</span>
+                    <span className="text-sm text-gray-700">Generating Images...</span>
                   </div>
                   <div className="flex items-center space-x-3">
-                    <div className="flex-1 bg-gray-600 rounded-full h-3 overflow-hidden">
+                    <div className="flex-1 bg-gray-200 rounded-full h-3 overflow-hidden">
                       <div 
                         className="bg-gradient-to-r from-purple-500 to-pink-500 h-full transition-all duration-300"
                         style={{ width: `${progress}%` }}
                       ></div>
                     </div>
-                    <span className="text-sm text-gray-300 whitespace-nowrap min-w-[120px]">
+                    <span className="text-sm text-gray-700 whitespace-nowrap min-w-[120px]">
                       {progressText || `${Math.round(progress)}%`}
                     </span>
                   </div>
@@ -1732,7 +1732,7 @@ const ImageMailMerge: React.FC = () => {
               <button 
                 onClick={generateImages}
                 disabled={!isReadyToGenerate || isProcessing}
-                className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg shadow-lg transition-all duration-300"
+                className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg shadow-lg transition-all duration-300 hover:shadow-xl"
               >
                 <span className="flex items-center justify-center">
                   <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1743,7 +1743,7 @@ const ImageMailMerge: React.FC = () => {
               </button>
 
               {!isReadyToGenerate && !isProcessing && (
-                <div className="mt-3 text-xs text-gray-400 bg-gray-600/30 border border-gray-500/30 rounded p-2">
+                <div className="mt-3 text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded p-2">
                   {!templateImage && "• Upload a template image"}
                   {templateImage && fields.length === 0 && "• Add text fields by clicking on the preview"}
                   {templateImage && fields.length > 0 && !csvData && "• Upload spreadsheet data"}
@@ -1756,46 +1756,46 @@ const ImageMailMerge: React.FC = () => {
 
         {/* Resize Handle */}
         <div 
-          className="w-1 bg-gray-600 hover:bg-purple-500 cursor-col-resize transition-colors"
+          className="w-1 bg-gray-300 hover:bg-blue-500 cursor-col-resize transition-colors"
           onMouseDown={handleSidebarResizeStart}
         />
 
         {/* Main Preview Area */}
-        <div className="flex-1 bg-gray-900 overflow-hidden">
+        <div className="flex-1 bg-gray-50 overflow-hidden">
           <div className="h-full flex flex-col">
             {/* Preview Header */}
-            <div className="bg-gray-800 border-b border-gray-700 px-6 py-3">
+            <div className="bg-white border-b border-gray-200 px-6 py-3">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-gray-200">Preview</h2>
+                <h2 className="text-lg font-semibold text-gray-900">Preview</h2>
                 {showZoomControls && ( <>
-                <span className="text-xs text-gray-400 ml-4 flex items-center">
+                <span className="text-xs text-gray-600 ml-4 flex items-center">
                   {/* Mouse Middle Button SVG */}
                   Hold
                   <svg className="w-4 h-4 ml-1" viewBox="0 0 24 24" fill="none">
-                    <rect x="5" y="3" width="14" height="18" rx="4" fill="#374151" stroke="#9CA3AF" strokeWidth="1.5"/>
-                    <rect x="11" y="5" width="2" height="4" rx="1" fill="#9CA3AF"/>
+                    <rect x="5" y="3" width="14" height="18" rx="4" fill="#F3F4F6" stroke="#6B7280" strokeWidth="1.5"/>
+                    <rect x="11" y="5" width="2" height="4" rx="1" fill="#6B7280"/>
                   </svg>
-                  <span className="mx-1 px-1 bg-gray-700 rounded">mouse middle button</span>
+                  <span className="mx-1 px-1 bg-gray-100 text-gray-700 rounded">mouse middle button</span>
                   and drag to pan
                 </span>
                   <div className="flex items-center space-x-3">
-                    <button onClick={zoomOut} title="Zoom Out (Ctrl+-)" className="bg-gray-700 hover:bg-gray-600 text-white p-2 rounded-lg transition-colors">
+                    <button onClick={zoomOut} title="Zoom Out (Ctrl+-)" className="bg-gray-100 hover:bg-gray-200 text-gray-700 p-2 rounded-lg transition-colors border border-gray-300">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 12H4"></path>
                       </svg>
                     </button>
-                    <span className="text-gray-300 text-sm font-medium min-w-[60px] text-center">
+                    <span className="text-gray-700 text-sm font-medium min-w-[60px] text-center">
                       {Math.round(zoomLevel * 100)}%
                     </span>
-                    <button onClick={zoomIn} title="Zoom In (Ctrl++)" className="bg-gray-700 hover:bg-gray-600 text-white p-2 rounded-lg transition-colors">
+                    <button onClick={zoomIn} title="Zoom In (Ctrl++)" className="bg-gray-100 hover:bg-gray-200 text-gray-700 p-2 rounded-lg transition-colors border border-gray-300">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path>
                       </svg>
                     </button>
-                    <button onClick={zoomToFit} title="Zoom to Fit (Ctrl+0)" className="bg-gray-700 hover:bg-gray-600 text-white px-3 py-2 rounded-lg transition-colors text-xs">
+                    <button onClick={zoomToFit} title="Zoom to Fit (Ctrl+0)" className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg transition-colors text-xs border border-gray-300">
                       Fit
                     </button>
-                    <button onClick={zoomToActual} title="Actual Size (Ctrl+1)" className="bg-gray-700 hover:bg-gray-600 text-white px-3 py-2 rounded-lg transition-colors text-xs">
+                    <button onClick={zoomToActual} title="Actual Size (Ctrl+1)" className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg transition-colors text-xs border border-gray-300">
                       1:1
                     </button>
                   </div>
@@ -1808,7 +1808,7 @@ const ImageMailMerge: React.FC = () => {
               {templateImage ? (
                 <div 
                   ref={canvasContainerRef}
-                  className="h-full w-full bg-gray-800/50 rounded-lg canvas-container overflow-auto"
+                  className="h-full w-full bg-white border border-gray-200 rounded-lg canvas-container overflow-auto shadow-md"
                   style={{ 
                     scrollbarWidth: 'none', 
                     msOverflowStyle: 'none'
@@ -1834,10 +1834,10 @@ const ImageMailMerge: React.FC = () => {
               ) : (
                 <div className="h-full flex items-center justify-center">
                   <div className="text-center text-gray-500">
-                    <svg className="w-24 h-24 mx-auto mb-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-24 h-24 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                     </svg>
-                    <p className="text-xl font-medium">Upload an image to start</p>
+                    <p className="text-xl font-medium text-gray-700">Upload an image to start</p>
                     <p className="text-sm text-gray-600 mt-2">Your template will appear here for editing</p>
                   </div>
                 </div>
@@ -1850,12 +1850,12 @@ const ImageMailMerge: React.FC = () => {
       {/* Field Type Selection Modal */}
       {showFieldTypeModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 rounded-lg p-6 w-96 max-w-90vw">
-            <h3 className="text-lg font-semibold text-white mb-4">Choose Field Type</h3>
+          <div className="bg-white rounded-lg p-6 w-96 max-w-90vw shadow-xl border border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Choose Field Type</h3>
             <div className="space-y-3">
               <button
                 onClick={() => handleFieldTypeSelection('text')}
-                className="w-full p-4 bg-blue-600 hover:bg-blue-700 rounded-lg text-white text-left transition-colors"
+                className="w-full p-4 bg-blue-600 hover:bg-blue-700 rounded-lg text-white text-left transition-colors shadow-md hover:shadow-lg"
               >
                 <div className="flex items-center">
                   <svg className="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1869,7 +1869,7 @@ const ImageMailMerge: React.FC = () => {
               </button>
               <button
                 onClick={() => handleFieldTypeSelection('qrcode')}
-                className="w-full p-4 bg-green-600 hover:bg-green-700 rounded-lg text-white text-left transition-colors"
+                className="w-full p-4 bg-green-600 hover:bg-green-700 rounded-lg text-white text-left transition-colors shadow-md hover:shadow-lg"
               >
                 <div className="flex items-center">
                   <svg className="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1887,7 +1887,7 @@ const ImageMailMerge: React.FC = () => {
                 setShowFieldTypeModal(false);
                 setPendingFieldPosition(null);
               }}
-              className="w-full mt-4 p-2 bg-gray-600 hover:bg-gray-700 rounded-lg text-white transition-colors"
+              className="w-full mt-4 p-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700 transition-colors border border-gray-300"
             >
               Cancel
             </button>
