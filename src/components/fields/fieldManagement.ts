@@ -1,5 +1,5 @@
 import { QRCodeFieldData } from '../QRCodeField';
-import { TextField, Field, FieldMapping, CSVRow } from '../types/fieldTypes';
+import { TextField, Field, FieldMapping, FileNameMapping, CSVRow } from '../types/fieldTypes';
 
 // Field creation utilities
 export const createTextField = (name: string, x: number, y: number): TextField => {
@@ -195,4 +195,19 @@ export const checkReadyToGenerate = (
   const hasCSV = !!csvData && csvData.length > 0;
   const hasFields = fields.length > 0;
   return hasImage && hasCSV && hasFields;
+};
+
+// File name mapping utilities
+export const updateFileNameMapping = (
+  csvColumn: string,
+  setFileNameMapping: React.Dispatch<React.SetStateAction<FileNameMapping>>
+) => {
+  setFileNameMapping(prev => ({ ...prev, csvColumn: csvColumn || null }));
+};
+
+export const updateFileNameNumbering = (
+  includeNumbering: boolean,
+  setFileNameMapping: React.Dispatch<React.SetStateAction<FileNameMapping>>
+) => {
+  setFileNameMapping(prev => ({ ...prev, includeNumbering }));
 };

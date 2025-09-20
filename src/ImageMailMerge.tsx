@@ -21,7 +21,9 @@ import {
   updateFieldMapping,
   clearFieldMappings,
   getUnmappedFields,
-  checkReadyToGenerate
+  checkReadyToGenerate,
+  updateFileNameMapping,
+  updateFileNameNumbering
 } from './components/fields/fieldManagement';
 import { createZoomControls, createFullscreenControls } from './components/canvas/zoomControls';
 
@@ -300,57 +302,6 @@ const ImageMailMerge: React.FC = () => {
     setShowFieldTypeModal(true);
   }, []);
 
-  // Create text field
-  const createTextField = useCallback((name: string, x: number, y: number) => {
-    const field: TextField = {
-      type: 'text',
-      name: name,
-      x: x,
-      y: y,
-      fontSize: 24,
-      fontFamily: 'Arial, sans-serif',
-      color: '#000000',
-      demoText: '',
-      textAlign: 'left'
-    };
-
-    setFields(prev => [...prev, field]);
-    
-    // Add empty mapping for new field
-    setFieldMappings(prev => [...prev, {
-      fieldName: name,
-      csvColumn: null
-    }]);
-    
-    drawFields();
-    checkReadyToGenerate();
-  }, []);
-
-  // Create QR code field
-  const createQRField = useCallback((name: string, x: number, y: number) => {
-    const field: QRCodeFieldData = {
-      type: 'qrcode',
-      name: name,
-      x: x,
-      y: y,
-      size: 50,
-      color: '#000000',
-      backgroundColor: null,
-      demoText: ''
-    };
-
-    setFields(prev => [...prev, field]);
-    
-    // Add empty mapping for new field
-    setFieldMappings(prev => [...prev, {
-      fieldName: name,
-      csvColumn: null
-    }]);
-    
-    drawFields();
-    checkReadyToGenerate();
-  }, []);
-
   // Handle field type selection
   const handleFieldTypeSelection = useCallback((fieldType: 'text' | 'qrcode') => {
     if (!pendingFieldPosition) return;
@@ -363,34 +314,24 @@ const ImageMailMerge: React.FC = () => {
     }
 
     if (fieldType === 'text') {
-      createTextField(fieldName, pendingFieldPosition.x, pendingFieldPosition.y);
+      const field = createTextField(fieldName, pendingFieldPosition.x, pendingFieldPosition.y);
+      addFieldToList(field, setFields, setFieldMappings);
     } else {
-      createQRField(fieldName, pendingFieldPosition.x, pendingFieldPosition.y);
+      const field = createQRField(fieldName, pendingFieldPosition.x, pendingFieldPosition.y);
+      addFieldToList(field, setFields, setFieldMappings);
     }
 
+    drawFields();
+    checkReadyToGenerate(templateImage, csvData, fields);
     setShowFieldTypeModal(false);
     setPendingFieldPosition(null);
-  }, [pendingFieldPosition, createTextField, createQRField]);
+  }, [pendingFieldPosition]);
 
   // Get current CSV row data for preview
   const getCurrentRowData = useCallback(() => {
     if (!csvData || !csvData[currentCsvRowIndex]) return null;
     return csvData[currentCsvRowIndex];
   }, [csvData, currentCsvRowIndex]);
-
-  // Get display text for a field (demo text or actual CSV data)
-  const getFieldDisplayText = useCallback((field: Field, useActualData: boolean = true) => {
-    if (!useActualData || !csvData) return field.demoText;
-    
-    const rowData = getCurrentRowData();
-    if (!rowData) return field.demoText;
-    
-    const mapping = fieldMappings.find(m => m.fieldName === field.name);
-    if (!mapping?.csvColumn) return field.demoText;
-    
-    const csvValue = rowData[mapping.csvColumn];
-    return csvValue && csvValue.trim() ? csvValue : field.demoText;
-  }, [csvData, currentCsvRowIndex, fieldMappings, getCurrentRowData]);
 
   // Draw fields (updated to handle both text and QR code fields)
   const drawFields = useCallback(async () => {
@@ -411,7 +352,7 @@ const ImageMailMerge: React.FC = () => {
       
       if (field.type === 'text') {
         // Handle text field
-        const displayText = getFieldDisplayText(field);
+        const displayText = getFieldDisplayText(field, csvData, currentCsvRowIndex, fieldMappings);
         
         // Draw demo text if available
         if (displayText && displayText.trim()) {
@@ -488,7 +429,7 @@ const ImageMailMerge: React.FC = () => {
         }
       } else if (field.type === 'qrcode') {
         // Handle QR code field
-        const displayText = getFieldDisplayText(field);
+        const displayText = getFieldDisplayText(field, csvData, currentCsvRowIndex, fieldMappings);
         
         if (displayText && displayText.trim()) {
           // Draw QR code using the imported function
@@ -553,7 +494,7 @@ const ImageMailMerge: React.FC = () => {
 
     for (let i = fields.length - 1; i >= 0; i--) {
       const field = fields[i];
-      const displayText = getFieldDisplayText(field);
+      const displayText = getFieldDisplayText(field, csvData, currentCsvRowIndex, fieldMappings);
       
       if (field.type === 'text') {
         if (displayText && displayText.trim()) {
@@ -902,112 +843,25 @@ const ImageMailMerge: React.FC = () => {
     };
   }, [isResizingSidebar]);
 
-  // Update field - separate functions for different field types
-  const updateTextField = useCallback((index: number, property: keyof TextField, value: any) => {
-    setFields(prev => prev.map((field, i) => {
-      if (i === index && field.type === 'text') {
-        const updatedField = { ...field, [property]: value };
-        
-        // If the field name is being changed, update the mapping as well
-        if (property === 'name' && typeof value === 'string') {
-          setFieldMappings(prevMappings => prevMappings.map(mapping => 
-            mapping.fieldName === field.name 
-              ? { ...mapping, fieldName: value }
-              : mapping
-          ));
-        }
-        
-        return updatedField;
-      }
-      return field;
-    }));
-  }, []);
-
-  const updateQRField = useCallback((index: number, property: keyof QRCodeFieldData, value: any) => {
-    setFields(prev => prev.map((field, i) => {
-      if (i === index && field.type === 'qrcode') {
-        const updatedField = { ...field, [property]: value };
-        
-        // If the field name is being changed, update the mapping as well
-        if (property === 'name' && typeof value === 'string') {
-          setFieldMappings(prevMappings => prevMappings.map(mapping => 
-            mapping.fieldName === field.name 
-              ? { ...mapping, fieldName: value }
-              : mapping
-          ));
-        }
-        
-        return updatedField;
-      }
-      return field;
-    }));
-  }, []);
-
-  // Generic field update for common properties
-  const updateField = useCallback((index: number, property: 'name' | 'demoText' | 'color' | 'x' | 'y', value: any) => {
-    setFields(prev => prev.map((field, i) => {
-      if (i === index) {
-        const updatedField = { ...field, [property]: value };
-        
-        // If the field name is being changed, update the mapping as well
-        if (property === 'name' && typeof value === 'string') {
-          setFieldMappings(prevMappings => prevMappings.map(mapping => 
-            mapping.fieldName === field.name 
-              ? { ...mapping, fieldName: value }
-              : mapping
-          ));
-        }
-        
-        return updatedField;
-      }
-      return field;
-    }));
-  }, []);
-
-  // Remove field
-  const removeField = useCallback((index: number) => {
-    const fieldToRemove = fields[index];
-    setFields(prev => prev.filter((_, i) => i !== index));
-    // Remove mapping by field name, not by index
-    setFieldMappings(prev => prev.filter(mapping => mapping.fieldName !== fieldToRemove.name));
+  // Wrapper functions for field management with additional state updates
+  const handleRemoveField = useCallback((index: number) => {
+    removeFieldFromList(index, fields, setFields, setFieldMappings);
     if (selectedFieldIndex === index) {
       setSelectedFieldIndex(-1);
     } else if (selectedFieldIndex > index) {
       setSelectedFieldIndex(prev => prev - 1);
     }
-  }, [selectedFieldIndex, fields]);
+  }, [fields, selectedFieldIndex]);
 
-  // Clear fields
-  const clearFields = useCallback(() => {
-    setFields([]);
+  const handleClearFields = useCallback(() => {
+    clearAllFields(setFields, setFieldMappings);
     setSelectedFieldIndex(-1);
-    setFieldMappings([]);
   }, []);
 
-  // Clear field mapping
-  const clearFieldMapping = useCallback(() => {
-    setFieldMappings(fields.map(field => ({ fieldName: field.name, csvColumn: null })));
+  const handleClearFieldMappings = useCallback(() => {
+    clearFieldMappings(fields, setFieldMappings);
     setFileNameMapping({ csvColumn: null, includeNumbering: true });
   }, [fields]);
-
-  // Update field mapping
-  const updateFieldMapping = useCallback((fieldName: string, csvColumn: string) => {
-    setFieldMappings(prev => prev.map(mapping => 
-      mapping.fieldName === fieldName 
-        ? { ...mapping, csvColumn } 
-        : mapping
-    ));
-  }, []);
-
-  // Update file name mapping
-  const updateFileNameMapping = useCallback((csvColumn: string) => {
-    setFileNameMapping(prev => ({ ...prev, csvColumn: csvColumn || null }));
-  }, []);
-
-  // Update file name numbering preference
-  const updateFileNameNumbering = useCallback((includeNumbering: boolean) => {
-    setFileNameMapping(prev => ({ ...prev, includeNumbering }));
-  }, []);
 
   // CSV row navigation
   const goToPreviousRow = useCallback(() => {
@@ -1025,22 +879,6 @@ const ImageMailMerge: React.FC = () => {
       setCurrentCsvRowIndex(index);
     }
   }, [csvData]);
-
-  // Check if field mappings are complete
-  const getUnmappedFields = useCallback(() => {
-    return fields.filter(field => {
-      const mapping = fieldMappings.find(m => m.fieldName === field.name);
-      return !mapping?.csvColumn;
-    });
-  }, [fields, fieldMappings]);
-
-  // Check ready to generate
-  const checkReadyToGenerate = useCallback(() => {
-    const hasImage = !!templateImage;
-    const hasCSV = !!csvData && csvData.length > 0;
-    const hasFields = fields.length > 0;
-    return hasImage && hasCSV && hasFields;
-  }, [templateImage, csvData, fields]);
 
   // Generate images
   const generateImages = useCallback(async () => {
@@ -1136,7 +974,7 @@ const ImageMailMerge: React.FC = () => {
   }, [imageUrl]);
 
   // Check if ready to generate
-  const isReadyToGenerate = checkReadyToGenerate();
+  const isReadyToGenerate = checkReadyToGenerate(templateImage, csvData, fields);
 
   return (
     <>
@@ -1314,7 +1152,7 @@ const ImageMailMerge: React.FC = () => {
                         <input
                           type="text"
                           value={field.name}
-                          onChange={(e) => updateField(index, 'name', e.target.value)}
+                          onChange={(e) => updateField(index, 'name', e.target.value, setFields, setFieldMappings)}
                           placeholder="Field Name"
                           className="bg-white border border-gray-300 text-gray-900 px-2 py-1 rounded text-sm flex-1 min-w-0 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         />
@@ -1331,7 +1169,7 @@ const ImageMailMerge: React.FC = () => {
                           </svg>
                         </button>
                         <button
-                          onClick={() => removeField(index)}
+                          onClick={() => handleRemoveField(index)}
                           className="bg-red-600 hover:bg-red-700 text-white p-1.5 rounded transition-colors flex-shrink-0"
                           title="Delete Field"
                         >
@@ -1343,7 +1181,7 @@ const ImageMailMerge: React.FC = () => {
                       <input
                         type="text"
                         value={field.demoText}
-                        onChange={(e) => updateField(index, 'demoText', e.target.value)}
+                        onChange={(e) => updateField(index, 'demoText', e.target.value, setFields, setFieldMappings)}
                         placeholder="Demo text"
                         className="bg-white border border-gray-300 text-gray-900 px-2 py-1 rounded text-sm w-full mb-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       />
@@ -1355,7 +1193,7 @@ const ImageMailMerge: React.FC = () => {
                             <input
                               type="number"
                               value={field.fontSize}
-                              onChange={(e) => updateTextField(index, 'fontSize', parseInt(e.target.value))}
+                              onChange={(e) => updateTextField(index, 'fontSize', parseInt(e.target.value), setFields, setFieldMappings)}
                               placeholder="Font Size"
                               className="bg-white border border-gray-300 text-gray-900 px-2 py-1 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                             />
@@ -1398,7 +1236,7 @@ const ImageMailMerge: React.FC = () => {
                                           key={font.value}
                                           type="button"
                                           onClick={() => {
-                                            updateTextField(index, 'fontFamily', font.value);
+                                            updateTextField(index, 'fontFamily', font.value, setFields, setFieldMappings);
                                             closeFontDropdown();
                                           }}
                                           className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 transition-colors ${
@@ -1447,7 +1285,7 @@ const ImageMailMerge: React.FC = () => {
                                 {COLOR_PRESETS.map(color => (
                                   <button
                                     key={color.value}
-                                    onClick={() => updateField(index, 'color', color.value)}
+                                    onClick={() => updateField(index, 'color', color.value, setFields, setFieldMappings)}
                                     className={`w-6 h-6 rounded border-2 ${field.color === color.value ? 'border-gray-800' : 'border-gray-300'} hover:border-gray-800 transition-colors`}
                                     style={{ backgroundColor: color.value }}
                                     title={color.name}
@@ -1459,7 +1297,7 @@ const ImageMailMerge: React.FC = () => {
                                 <input
                                   type="color"
                                   value={field.color}
-                                  onChange={(e) => updateField(index, 'color', e.target.value)}
+                                  onChange={(e) => updateField(index, 'color', e.target.value, setFields, setFieldMappings)}
                                   className="w-full h-8 bg-white border border-gray-300 rounded cursor-pointer mt-1"
                                 />
                               </details>
@@ -1473,7 +1311,7 @@ const ImageMailMerge: React.FC = () => {
                               {TEXT_ALIGN_OPTIONS.map(option => (
                                 <button
                                   key={option.value}
-                                  onClick={() => updateTextField(index, 'textAlign', option.value)}
+                                  onClick={() => updateTextField(index, 'textAlign', option.value, setFields, setFieldMappings)}
                                   className={`flex-1 px-3 py-1 rounded-lg text-sm font-medium transition-all flex items-center justify-center
                                     ${field.textAlign === option.value ? 'bg-blue-600 text-white' : 'bg-gray-100 text-blue-600 hover:bg-blue-100 border border-gray-300'}
                                   `}
@@ -1501,7 +1339,7 @@ const ImageMailMerge: React.FC = () => {
                 </div>
                 
                 <button 
-                  onClick={clearFields}
+                  onClick={handleClearFields}
                   className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-3 rounded-lg transition-colors text-sm shadow-md"
                 >
                   Clear All
@@ -1579,15 +1417,15 @@ const ImageMailMerge: React.FC = () => {
                   </div>
 
                   {/* Warning for unmapped fields */}
-                  {fields.length > 0 && getUnmappedFields().length > 0 && (
+                  {fields.length > 0 && getUnmappedFields(fields, fieldMappings).length > 0 && (
                     <div className="mb-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-yellow-700 text-xs">
                       <div className="flex items-center">
                         <svg className="w-4 h-4 mr-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.268 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
                         </svg>
                         <span>
-                          <strong>Warning:</strong> {getUnmappedFields().length} field(s) not mapped: <br />
-                          {getUnmappedFields().map(f => f.name).join(', ')}. <br />
+                          <strong>Warning:</strong> {getUnmappedFields(fields, fieldMappings).length} field(s) not mapped: <br />
+                          {getUnmappedFields(fields, fieldMappings).map(f => f.name).join(', ')}. <br />
                           Go to Field Mapping section below to map them.
                         </span>
                       </div>
@@ -1657,7 +1495,7 @@ const ImageMailMerge: React.FC = () => {
                       <div className="flex-1 min-w-0">
                         <select
                           value={fileNameMapping.csvColumn || ''}
-                          onChange={(e) => updateFileNameMapping(e.target.value)}
+                          onChange={(e) => updateFileNameMapping(e.target.value, setFileNameMapping)}
                           className="bg-white border border-gray-300 text-gray-900 px-2 py-1 rounded text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         >
                           <option value="">-- Use Default (image_0001.png) --</option>
@@ -1673,7 +1511,7 @@ const ImageMailMerge: React.FC = () => {
                           type="checkbox"
                           id="includeNumbering"
                           checked={fileNameMapping.includeNumbering}
-                          onChange={(e) => updateFileNameNumbering(e.target.checked)}
+                          onChange={(e) => updateFileNameNumbering(e.target.checked, setFileNameMapping)}
                           className="w-4 h-4 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
                         />
                         <label htmlFor="includeNumbering" className="text-sm text-gray-700">
@@ -1695,7 +1533,7 @@ const ImageMailMerge: React.FC = () => {
                       <span className="text-sm text-gray-700 min-w-[80px]">{mapping.fieldName}:</span>
                       <select
                         value={mapping.csvColumn || ''}
-                        onChange={(e) => updateFieldMapping(mapping.fieldName, e.target.value)}
+                        onChange={(e) => updateFieldMapping(mapping.fieldName, e.target.value, setFieldMappings)}
                         className="bg-white border border-gray-300 text-gray-900 px-2 py-1 rounded text-sm flex-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       >
                         <option value="">-- Select Column --</option>
@@ -1709,7 +1547,7 @@ const ImageMailMerge: React.FC = () => {
                 
                 <div className="flex justify-center">
                   <button 
-                    onClick={clearFieldMapping}
+                    onClick={handleClearFieldMappings}
                     className="bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors text-sm shadow-md"
                   >
                     Clear All Mappings
@@ -1765,7 +1603,7 @@ const ImageMailMerge: React.FC = () => {
                   {!templateImage && "• Upload a template image"}
                   {templateImage && fields.length === 0 && "• Add text fields by clicking on the preview"}
                   {templateImage && fields.length > 0 && !csvData && "• Upload spreadsheet data"}
-                  {templateImage && fields.length > 0 && csvData && getUnmappedFields().length > 0 && "• Map all fields to spreadsheet columns"}
+                  {templateImage && fields.length > 0 && csvData && getUnmappedFields(fields, fieldMappings).length > 0 && "• Map all fields to spreadsheet columns"}
                 </div>
               )}
             </div>
