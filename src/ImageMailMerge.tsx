@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import JSZip from 'jszip';
 import { QRCodeFieldData, QRCodeFieldEditor, drawQRCodeOnCanvas } from './components/QRCodeField';
 import { comprehensiveFontList, DEFAULT_FONT_OPTIONS } from './components/font/fontsList';
 import { detectSystemFonts, updateFontFamilyOptions, type FontOption } from './components/font/fontFunctions';
@@ -7,6 +6,24 @@ import { parseSpreadsheetFile, type CSVRow } from './components/data/spreadsheet
 import { parseMarkdownText, applyTextFormatting, drawFormattedText } from './components/text/textFormatting';
 import { COLOR_PRESETS, TEXT_ALIGN_OPTIONS } from './components/ui/constants';
 import { TextField, Field, FieldMapping, FileNameMapping } from './components/types/fieldTypes';
+import { createCanvasMouseHandlers } from './components/canvas/canvasInteraction';
+import { generateImages as generateImagesUtil } from './components/generation/imageGeneration';
+import { 
+  createTextField, 
+  createQRField, 
+  addFieldToList, 
+  removeFieldFromList, 
+  clearAllFields,
+  updateTextField,
+  updateQRField,
+  updateField,
+  getFieldDisplayText,
+  updateFieldMapping,
+  clearFieldMappings,
+  getUnmappedFields,
+  checkReadyToGenerate
+} from './components/fields/fieldManagement';
+import { createZoomControls, createFullscreenControls } from './components/canvas/zoomControls';
 
 const ImageMailMerge: React.FC = () => {
   // State
@@ -56,6 +73,7 @@ const ImageMailMerge: React.FC = () => {
   const sidebarResizeStartRef = useRef({ width: 0, x: 0 });
   const panStartRef = useRef({ x: 0, y: 0 });
   const canvasContainerRef = useRef<HTMLDivElement>(null);
+  const mainLayoutRef = useRef<HTMLDivElement>(null);
 
   // Initialize canvas context
   useEffect(() => {
@@ -1031,111 +1049,26 @@ const ImageMailMerge: React.FC = () => {
     setShowSuccessMessage(false);
 
     try {
-      const zip = new JSZip();
-      const totalRows = csvData.length;
-      console.log(`Starting generation of ${totalRows} images`);
-
-      for (let i = 0; i < totalRows; i++) {
-        const row = csvData[i];
-        
-        // Update progress text to match old format
-        const percent = ((i + 1) / totalRows) * 100;
-        setProgress(percent);
-        setProgressText(`Processing image ${i + 1} of ${totalRows} (${Math.round(percent)}%)`);
-        
-        // Create canvas for this row
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d')!;
-        
-        // Load and draw template image
-        const img = new Image();
-        await new Promise<void>((resolve) => {
-          img.onload = () => {
-            canvas.width = img.width;
-            canvas.height = img.height;
-            ctx.drawImage(img, 0, 0);
-            resolve();
-          };
-          img.src = imageUrl;
-        });
-
-        // Draw fields with CSV data
-        for (const field of fields) {
-          const mapping = fieldMappings.find(m => m.fieldName === field.name);
-          const text = mapping?.csvColumn ? row[mapping.csvColumn] || '' : field.demoText || '';
-          
-          if (text) {
-            if (field.type === 'text') {
-              drawFormattedText(
-                ctx,
-                text,
-                field.x,
-                field.y,
-                field.fontSize,
-                field.fontFamily,
-                field.color,
-                field.textAlign
-              );
-            } else if (field.type === 'qrcode') {
-              await drawQRCodeOnCanvas(ctx, field, text);
-            }
-          }
+      const result = await generateImagesUtil(
+        templateImage,
+        imageUrl,
+        csvData,
+        fields,
+        fieldMappings,
+        fileNameMapping,
+        (progress, text) => {
+          setProgress(progress);
+          setProgressText(text);
         }
+      );
 
-        // Convert to blob and add to zip
-        const blob = await new Promise<Blob>((resolve) =>
-          canvas.toBlob((blob) => resolve(blob!), 'image/png')
-        );
-        
-        // Generate filename - use CSV data if mapped, otherwise default naming
-        let fileName = `image_${String(i + 1).padStart(4, '0')}.png`;
-        if (fileNameMapping.csvColumn && row[fileNameMapping.csvColumn]) {
-          const customName = row[fileNameMapping.csvColumn].trim();
-          if (customName) {
-            // Sanitize filename and ensure .png extension
-            let sanitizedName = customName.replace(/[<>:"/\\|?*]/g, '_');
-            if (!sanitizedName.toLowerCase().endsWith('.png')) {
-              sanitizedName += '.png';
-            }
-            // Include numbering prefix only if user wants it
-            if (fileNameMapping.includeNumbering) {
-              fileName = `${String(i + 1).padStart(4, '0')}_${sanitizedName}`;
-            } else {
-              fileName = sanitizedName;
-            }
-          }
-        }
-        
-        // Add to zip with proper error handling
-        try {
-          zip.file(fileName, blob);
-          console.log(`✓ Added file ${i + 1}/${totalRows}: ${fileName}, blob size: ${blob.size}`);
-        } catch (error) {
-          console.error(`Failed to add file ${fileName}:`, error);
-        }
-
-        // Allow UI to update and ensure blob is processed
-        await new Promise(resolve => setTimeout(resolve, 50));
+      if (result.success) {
+        // Show success message
+        setShowSuccessMessage(true);
+        setTimeout(() => setShowSuccessMessage(false), 5000);
+      } else {
+        throw new Error(result.error || 'Unknown error occurred');
       }
-
-      // Generate ZIP file
-      setProgressText('Generating ZIP file...');
-      console.log(`Generating ZIP with ${Object.keys(zip.files).length} files`);
-      const zipBlob = await zip.generateAsync({ type: 'blob' });
-      console.log(`ZIP generated, size: ${zipBlob.size} bytes`);
-      
-      // Download zip
-      const url = URL.createObjectURL(zipBlob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `mailmerge_images_${new Date().toISOString().slice(0,10)}.zip`;
-      a.click();
-      URL.revokeObjectURL(url);
-
-      // Show success message
-      setShowSuccessMessage(true);
-      setTimeout(() => setShowSuccessMessage(false), 5000);
-
     } catch (error) {
       console.error('Error generating images:', error);
       alert(`Error generating images: ${(error as Error).message}`);
@@ -1146,94 +1079,29 @@ const ImageMailMerge: React.FC = () => {
     }
   }, [templateImage, csvData, fields, fieldMappings, fileNameMapping, imageUrl]);
 
-  // Zoom controls
-  const zoomIn = useCallback(() => setZoomLevel(prev => Math.min(prev * 1.2, 5)), []);
-  const zoomOut = useCallback(() => setZoomLevel(prev => Math.max(prev / 1.2, 0.1)), []);
-  const zoomToFit = useCallback(() => {
-    if (!canvasRef.current || !originalImageWidthRef.current || !originalImageHeightRef.current) return;
-    
-    const container = canvasContainerRef.current;
-    if (!container) return;
-    
-    // Get the actual available space for the image
-    const containerRect = container.getBoundingClientRect();
-    const availableWidth = containerRect.width - 128; // Account for padding (64px on each side)
-    const availableHeight = containerRect.height - 128; // Account for padding (64px on each side)
-    
-    // Calculate scale factors for both dimensions
-    const scaleX = availableWidth / originalImageWidthRef.current;
-    const scaleY = availableHeight / originalImageHeightRef.current;
-    
-    // Use the smaller scale to ensure the image fits completely
-    const scale = Math.min(scaleX, scaleY, 1); // Don't zoom in beyond 100%
-    
-    console.log('Zoom to fit:', { 
-      containerSize: { width: containerRect.width, height: containerRect.height },
-      availableSpace: { width: availableWidth, height: availableHeight },
-      imageSize: { width: originalImageWidthRef.current, height: originalImageHeightRef.current },
-      scales: { scaleX, scaleY },
-      finalScale: scale 
-    });
-    
-    setZoomLevel(scale);
-  }, []);
-  const zoomToActual = useCallback(() => setZoomLevel(1), []);
+  // Create zoom controls
+  const { zoomIn, zoomOut, zoomToFit, zoomToActual } = createZoomControls(
+    setZoomLevel,
+    canvasRef,
+    canvasContainerRef,
+    originalImageWidthRef,
+    originalImageHeightRef
+  );
 
-  // Fullscreen functionality
-  const mainLayoutRef = useRef<HTMLDivElement>(null);
-  
-  const toggleFullscreen = useCallback(async () => {
-    try {
-      if (!isFullscreen) {
-        // Enter fullscreen on the main layout container
-        const element = mainLayoutRef.current;
-        if (!element) return;
-        
-        if (element.requestFullscreen) {
-          await element.requestFullscreen();
-        } else if ((element as any).webkitRequestFullscreen) {
-          await (element as any).webkitRequestFullscreen();
-        } else if ((element as any).msRequestFullscreen) {
-          await (element as any).msRequestFullscreen();
-        }
-        setIsFullscreen(true);
-      } else {
-        // Exit fullscreen
-        if (document.exitFullscreen) {
-          await document.exitFullscreen();
-        } else if ((document as any).webkitExitFullscreen) {
-          await (document as any).webkitExitFullscreen();
-        } else if ((document as any).msExitFullscreen) {
-          await (document as any).msExitFullscreen();
-        }
-        setIsFullscreen(false);
-      }
-    } catch (error) {
-      console.warn('Fullscreen operation failed:', error);
-    }
-  }, [isFullscreen]);
+  // Create fullscreen controls
+  const { toggleFullscreen: toggleFullscreenUtil, setupFullscreenListeners } = createFullscreenControls(
+    setIsFullscreen,
+    mainLayoutRef
+  );
+
+  const toggleFullscreen = useCallback(() => {
+    toggleFullscreenUtil(isFullscreen);
+  }, [isFullscreen, toggleFullscreenUtil]);
 
   // Listen for fullscreen changes (user pressing F11 or Esc)
   useEffect(() => {
-    const handleFullscreenChange = () => {
-      const isCurrentlyFullscreen = !!(
-        document.fullscreenElement ||
-        (document as any).webkitFullscreenElement ||
-        (document as any).msFullscreenElement
-      );
-      setIsFullscreen(isCurrentlyFullscreen);
-    };
-
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
-    document.addEventListener('msfullscreenchange', handleFullscreenChange);
-
-    return () => {
-      document.removeEventListener('fullscreenchange', handleFullscreenChange);
-      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
-      document.removeEventListener('msfullscreenchange', handleFullscreenChange);
-    };
-  }, []);
+    return setupFullscreenListeners(setIsFullscreen);
+  }, [setupFullscreenListeners]);
 
   // Bind canvas events
   const bindCanvasEvents = useCallback(() => {
