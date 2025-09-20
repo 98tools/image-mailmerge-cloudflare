@@ -3,7 +3,7 @@ import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
 import JSZip from 'jszip';
 import { QRCodeFieldData, QRCodeFieldEditor, drawQRCodeOnCanvas } from './components/QRCodeField';
-import { comprehensiveFontList , DEFAULT_FONT_OPTIONS} from './components/fontsList';
+import { comprehensiveFontList , DEFAULT_FONT_OPTIONS} from './components/font/fontsList';
 
 // Color and font presets (from Tailwind CSS)
 const COLOR_PRESETS = [
