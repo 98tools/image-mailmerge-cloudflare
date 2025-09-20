@@ -489,7 +489,7 @@ const parseSpreadsheetFile = async (file: File): Promise<{
   }
 };
 
-const MailMerge: React.FC = () => {
+const ImageMailMerge: React.FC = () => {
   // State
   const [templateImage, setTemplateImage] = useState<File | null>(null);
   const [csvData, setCsvData] = useState<CSVRow[] | null>(null);
@@ -1709,7 +1709,7 @@ const MailMerge: React.FC = () => {
             <span className="text-sm text-gray-400">for image</span>
             {/* GitHub Link */}
             <a 
-              href="https://github.com/abdulkarim1422/image-mailmerge-cloudflare" 
+              href="https://github.com/98tools/image-mailmerge-98-cloudflare" 
               target="_blank" 
               rel="noopener noreferrer"
               className="flex items-center space-x-2 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors duration-200 group"
@@ -2458,7 +2458,7 @@ const MailMerge: React.FC = () => {
   );
 };
 
-export default MailMerge;
+export default ImageMailMerge;
 
 // Function to parse markdown-like text and apply formatting
 const parseMarkdownText = (text: string) => {
