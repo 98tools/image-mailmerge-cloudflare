@@ -91,53 +91,51 @@ const ImageMailMerge: React.FC = () => {
     }
   }, []); // Only run once
 
-  // Detect system fonts on component mount
-  useEffect(() => {
-    const loadFonts = async () => {
-      if (fontsLoaded) return;
+  // Lazy font loading - only when user first opens font dropdown
+  const loadFontsLazily = useCallback(async () => {
+    if (fontsLoaded || isFontsLoading) {
+      return; // Fonts already loaded or currently loading
+    }
+    
+    setIsFontsLoading(true);
+    try {
+      console.log('Detecting system fonts...');
+      const detectedFonts = await detectSystemFonts();
+      console.log(`Detected ${detectedFonts.length} system fonts`);
       
-      setIsFontsLoading(true);
-      try {
-        console.log('Detecting system fonts...');
-        const detectedFonts = await detectSystemFonts();
-        console.log(`Detected ${detectedFonts.length} system fonts`);
-        
-        // Determine detection method used
-        if (detectedFonts.length > 50) {
-          setFontDetectionMethod('api');
-        } else if (detectedFonts.length > 0) {
-          setFontDetectionMethod('fallback');
-        } else {
-          setFontDetectionMethod('none');
-        }
-        
-        // Combine default fonts with detected fonts, avoiding duplicates
-        const combinedFonts = [...DEFAULT_FONT_OPTIONS];
-        
-        detectedFonts.forEach(font => {
-          if (!combinedFonts.find(existing => existing.name === font.name)) {
-            combinedFonts.push(font);
-          }
-        });
-        
-        // Sort all fonts alphabetically
-        combinedFonts.sort((a, b) => a.name.localeCompare(b.name));
-        
-        setAvailableFonts(combinedFonts);
-        updateFontFamilyOptions(combinedFonts); // Update the global variable too
-        setFontsLoaded(true);
-        console.log(`Total fonts available: ${combinedFonts.length}`);
-      } catch (error) {
-        console.error('Error detecting fonts:', error);
-        setAvailableFonts(DEFAULT_FONT_OPTIONS);
+      // Determine detection method used
+      if (detectedFonts.length > 50) {
+        setFontDetectionMethod('api');
+      } else if (detectedFonts.length > 0) {
+        setFontDetectionMethod('fallback');
+      } else {
         setFontDetectionMethod('none');
-      } finally {
-        setIsFontsLoading(false);
       }
-    };
-
-    loadFonts();
-  }, []); // Only run once
+      
+      // Combine default fonts with detected fonts, avoiding duplicates
+      const combinedFonts = [...DEFAULT_FONT_OPTIONS];
+      
+      detectedFonts.forEach(font => {
+        if (!combinedFonts.find(existing => existing.name === font.name)) {
+          combinedFonts.push(font);
+        }
+      });
+      
+      // Sort all fonts alphabetically
+      combinedFonts.sort((a, b) => a.name.localeCompare(b.name));
+      
+      setAvailableFonts(combinedFonts);
+      updateFontFamilyOptions(combinedFonts); // Update the global variable too
+      setFontsLoaded(true);
+      console.log(`Total fonts available: ${combinedFonts.length}`);
+    } catch (error) {
+      console.error('Error detecting fonts:', error);
+      setAvailableFonts(DEFAULT_FONT_OPTIONS);
+      setFontDetectionMethod('none');
+    } finally {
+      setIsFontsLoading(false);
+    }
+  }, [fontsLoaded, isFontsLoading]);
 
   // Filter fonts based on search term
   const filteredFonts = useMemo(() => {
@@ -154,9 +152,14 @@ const ImageMailMerge: React.FC = () => {
 
   // Function to toggle font dropdown
   const toggleFontDropdown = useCallback((fieldIndex: number) => {
+    // If opening dropdown (not closing), trigger lazy font loading
+    if (showFontDropdown !== fieldIndex) {
+      loadFontsLazily(); // Start loading fonts when user first opens dropdown
+    }
+    
     setShowFontDropdown(prev => prev === fieldIndex ? -1 : fieldIndex);
     setFontSearchTerm(''); // Reset search when opening dropdown
-  }, []);
+  }, [showFontDropdown, loadFontsLazily]);
 
   // Function to close font dropdown when clicking outside
   const closeFontDropdown = useCallback(() => {
