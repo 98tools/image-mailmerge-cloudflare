@@ -1810,11 +1810,9 @@ const ImageMailMerge: React.FC = () => {
               {templateImage ? (
                 <div 
                   ref={canvasContainerRef}
-                  className="h-full w-full bg-white border border-gray-200 rounded-lg canvas-container overflow-auto shadow-md"
-                  style={{ 
-                    scrollbarWidth: 'none', 
-                    msOverflowStyle: 'none'
-                  }}
+                  className="h-full w-full bg-white border border-gray-200 rounded-lg shadow-md
+                    overflow-hidden [&::-webkit-scrollbar]:hidden
+                    [scrollbar-width:none] [-ms-overflow-style:none]"
                 >
                   <div className="flex items-center justify-center min-h-full min-w-full p-8">
                     <div 
