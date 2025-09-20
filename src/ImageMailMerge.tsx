@@ -514,6 +514,7 @@ const ImageMailMerge: React.FC = () => {
   const [showFieldDefinition, setShowFieldDefinition] = useState(false);
   const [showZoomControls, setShowZoomControls] = useState(false);
   const [isImageLoading, setIsImageLoading] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [currentCsvRowIndex, setCurrentCsvRowIndex] = useState(0);
   const [showFieldTypeModal, setShowFieldTypeModal] = useState(false);
   const [pendingFieldPosition, setPendingFieldPosition] = useState<{x: number, y: number} | null>(null);
@@ -1280,6 +1281,12 @@ const ImageMailMerge: React.FC = () => {
         setZoomLevel(1);
       }
       
+      // F11 for fullscreen toggle
+      if (e.key === 'F11') {
+        e.preventDefault();
+        toggleFullscreen();
+      }
+      
       // Escape to close font dropdown
       if (e.key === 'Escape' && showFontDropdown !== -1) {
         e.preventDefault();
@@ -1653,6 +1660,62 @@ const ImageMailMerge: React.FC = () => {
   }, []);
   const zoomToActual = useCallback(() => setZoomLevel(1), []);
 
+  // Fullscreen functionality
+  const mainLayoutRef = useRef<HTMLDivElement>(null);
+  
+  const toggleFullscreen = useCallback(async () => {
+    try {
+      if (!isFullscreen) {
+        // Enter fullscreen on the main layout container
+        const element = mainLayoutRef.current;
+        if (!element) return;
+        
+        if (element.requestFullscreen) {
+          await element.requestFullscreen();
+        } else if ((element as any).webkitRequestFullscreen) {
+          await (element as any).webkitRequestFullscreen();
+        } else if ((element as any).msRequestFullscreen) {
+          await (element as any).msRequestFullscreen();
+        }
+        setIsFullscreen(true);
+      } else {
+        // Exit fullscreen
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        } else if ((document as any).webkitExitFullscreen) {
+          await (document as any).webkitExitFullscreen();
+        } else if ((document as any).msExitFullscreen) {
+          await (document as any).msExitFullscreen();
+        }
+        setIsFullscreen(false);
+      }
+    } catch (error) {
+      console.warn('Fullscreen operation failed:', error);
+    }
+  }, [isFullscreen]);
+
+  // Listen for fullscreen changes (user pressing F11 or Esc)
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const isCurrentlyFullscreen = !!(
+        document.fullscreenElement ||
+        (document as any).webkitFullscreenElement ||
+        (document as any).msFullscreenElement
+      );
+      setIsFullscreen(isCurrentlyFullscreen);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('msfullscreenchange', handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('msfullscreenchange', handleFullscreenChange);
+    };
+  }, []);
+
   // Bind canvas events
   const bindCanvasEvents = useCallback(() => {
     // Canvas events are already bound via JSX event handlers
@@ -1700,14 +1763,38 @@ const ImageMailMerge: React.FC = () => {
       )}
 
       {/* Main Layout */}
-      <div className="flex h-full">
+      <div ref={mainLayoutRef} className="flex h-full">
         {/* Sidebar */}
         <div 
-          className="bg-gray-800 border-r border-gray-700 flex flex-col overflow-y-auto"
+          className="bg-gray-800 border-r border-gray-700 flex flex-col overflow-y-auto transition-all duration-300"
           style={{ width: sidebarWidth, minWidth: 300, maxWidth: 600 }}
         >
           <div className="p-4 border-b border-gray-700">
-            <h2 className="text-lg font-semibold text-gray-200">Options</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-200 flex items-center">
+                Options
+                {isFullscreen && (
+                  <span className="ml-2 px-2 py-1 bg-purple-600 text-white text-xs rounded-full">
+                    Fullscreen Mode
+                  </span>
+                )}
+              </h2>
+              <button 
+                onClick={toggleFullscreen} 
+                title={isFullscreen ? "Exit Fullscreen (F11)" : "Enter Fullscreen (F11)"} 
+                className="bg-gray-700 hover:bg-gray-600 text-white p-2 rounded-lg transition-colors"
+              >
+                {isFullscreen ? (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 9V4.5M9 9H4.5M9 9L3.5 3.5M15 9h4.5M15 9V4.5M15 9l5.5-5.5M9 15H4.5M9 15v4.5M9 15l-5.5 5.5M15 15h4.5M15 15v4.5m0-4.5l5.5 5.5"></path>
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path>
+                  </svg>
+                )}
+              </button>
+            </div>
           </div>
           
           <div className="flex-1 p-4 space-y-6 mb-20">
