@@ -1310,36 +1310,35 @@ const ImageMailMerge: React.FC = () => {
                 <div className="space-y-3 mb-4">
                   {fields.map((field, index) => (
                     <div key={index} className={`p-3 rounded-lg border ${selectedFieldIndex === index ? 'border-blue-500 bg-blue-50' : 'border-gray-300 bg-gray-50'}`}>
-                      <div className="flex items-center mb-2">
+                      <div className="flex items-center mb-2 gap-1">
                         <input
                           type="text"
                           value={field.name}
                           onChange={(e) => updateField(index, 'name', e.target.value)}
                           placeholder="Field Name"
-                          className="bg-white border border-gray-300 text-gray-900 px-2 py-1 rounded text-sm flex-1 mr-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          className="bg-white border border-gray-300 text-gray-900 px-2 py-1 rounded text-sm flex-1 min-w-0 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         />
-                        <span className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded mr-2 flex-shrink-0">
+                        <span className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded flex-shrink-0">
                           {field.type === 'text' ? 'Text' : 'QR'}
                         </span>
-                      </div>
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex gap-1 flex-shrink-0">
-                          <button
-                            onClick={() => setSelectedFieldIndex(index)}
-                            className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded transition-colors whitespace-nowrap"
-                          >
-                            Select
-                          </button>
-                          <button
-                            onClick={() => removeField(index)}
-                            className="bg-red-600 hover:bg-red-700 text-white p-1 rounded transition-colors flex-shrink-0"
-                            title="Delete Field"
-                          >
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                            </svg>
-                          </button>
-                        </div>
+                        <button
+                          onClick={() => setSelectedFieldIndex(index)}
+                          className="bg-blue-600 hover:bg-blue-700 text-white p-1.5 rounded transition-colors flex-shrink-0"
+                          title="Select Field"
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"></path>
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => removeField(index)}
+                          className="bg-red-600 hover:bg-red-700 text-white p-1.5 rounded transition-colors flex-shrink-0"
+                          title="Delete Field"
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                          </svg>
+                        </button>
                       </div>
                       <input
                         type="text"
