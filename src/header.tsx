@@ -1,22 +1,22 @@
 export default function Header() {
     return (
-    <div className="bg-gray-800 border-b border-gray-700 px-6 py-4">
+    <div className="bg-white border-b border-gray-200 px-6 py-4 shadow-sm">
         <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-500 bg-clip-text text-transparent">
                 Mail Merge Tool
             </h1>
-            <span className="text-sm text-gray-400">for image</span>
+            <span className="text-sm text-gray-600">for image</span>
             {/* GitHub Link */}
             <a 
                 href="https://github.com/98tools/image-mailmerge-cloudflare" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="flex items-center space-x-2 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors duration-200 group"
+                className="flex items-center space-x-2 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors duration-200 group border border-gray-300"
                 title="View on GitHub"
             >
                 <svg 
-                className="w-4 h-4 text-gray-300 group-hover:text-white transition-colors" 
+                className="w-4 h-4 text-gray-600 group-hover:text-gray-800 transition-colors" 
                 fill="currentColor" 
                 viewBox="0 0 20 20"
                 >
@@ -26,7 +26,7 @@ export default function Header() {
                     clipRule="evenodd"
                 />
                 </svg>
-                <span className="text-sm font-medium text-gray-300 group-hover:text-white transition-colors">
+                <span className="text-sm font-medium text-gray-600 group-hover:text-gray-800 transition-colors">
                 GitHub
                 </span>
             </a>
