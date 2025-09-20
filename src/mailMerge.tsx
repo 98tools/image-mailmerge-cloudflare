@@ -1732,35 +1732,6 @@ const MailMerge: React.FC = () => {
             </a>
           </div>
           <div className="flex items-center space-x-4">
-            {/* Progress Bar in Header */}
-            {isProcessing && (
-              <div className="flex items-center space-x-3 bg-gray-700/50 rounded-lg px-4 py-2">
-                <div className="flex items-center space-x-2">
-                  <div className="w-32 bg-gray-600 rounded-full h-2 overflow-hidden">
-                    <div 
-                      className="bg-gradient-to-r from-purple-500 to-pink-500 h-full transition-all duration-300"
-                      style={{ width: `${progress}%` }}
-                    ></div>
-                  </div>
-                  <span className="text-sm text-gray-300 whitespace-nowrap min-w-[120px]">
-                    {progressText || `${Math.round(progress)}%`}
-                  </span>
-                </div>
-              </div>
-            )}
-            
-            <button 
-              onClick={generateImages}
-              disabled={!isReadyToGenerate || isProcessing}
-              className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-white font-semibold py-2 px-6 rounded-lg shadow-lg transition-all duration-300"
-            >
-              <span className="flex items-center">
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-                </svg>
-                {isProcessing ? 'Generating...' : 'Generate Images'}
-              </span>
-            </button>
           </div>
         </div>
       </div>
@@ -2288,6 +2259,58 @@ const MailMerge: React.FC = () => {
                 </div>
               </div>
             )}
+
+            {/* Generate Images Section */}
+            <div className="bg-gray-700/50 rounded-lg p-4">
+              <div className="flex items-center mb-4">
+                <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold text-sm mr-3">
+                  5
+                </div>
+                <h3 className="text-lg font-semibold text-white">Generate Images</h3>
+              </div>
+
+              {/* Progress Bar */}
+              {isProcessing && (
+                <div className="bg-gray-600/50 border border-gray-500 rounded-lg p-3 mb-4">
+                  <div className="flex items-center mb-2">
+                    <span className="text-sm text-gray-300">Generating Images...</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <div className="flex-1 bg-gray-600 rounded-full h-3 overflow-hidden">
+                      <div 
+                        className="bg-gradient-to-r from-purple-500 to-pink-500 h-full transition-all duration-300"
+                        style={{ width: `${progress}%` }}
+                      ></div>
+                    </div>
+                    <span className="text-sm text-gray-300 whitespace-nowrap min-w-[120px]">
+                      {progressText || `${Math.round(progress)}%`}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              <button 
+                onClick={generateImages}
+                disabled={!isReadyToGenerate || isProcessing}
+                className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg shadow-lg transition-all duration-300"
+              >
+                <span className="flex items-center justify-center">
+                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                  </svg>
+                  {isProcessing ? 'Generating...' : 'Generate Images'}
+                </span>
+              </button>
+
+              {!isReadyToGenerate && !isProcessing && (
+                <div className="mt-3 text-xs text-gray-400 bg-gray-600/30 border border-gray-500/30 rounded p-2">
+                  {!templateImage && "• Upload a template image"}
+                  {templateImage && fields.length === 0 && "• Add text fields by clicking on the preview"}
+                  {templateImage && fields.length > 0 && !csvData && "• Upload spreadsheet data"}
+                  {templateImage && fields.length > 0 && csvData && getUnmappedFields().length > 0 && "• Map all fields to spreadsheet columns"}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
